@@ -76,9 +76,11 @@ export const BuildUploadCard: React.FC<BuildUploadCardProps> = ({
 
   const statusPillText =
     project.buildStatus === 'synced'
-      ? '已同步发布'
+      ? project.versionMismatch
+        ? '已上传 · 版本待对齐'
+        : '已同步发布'
       : uploadedCurrentCommit
-        ? `已传 ${project.latestUploadLog?.version} · 有改动`
+        ? `已传 ${project.latestUploadLog?.version} · 有新改动`
         : project.buildStatus === 'pending_upload'
           ? '已构建待上传'
           : project.buildStatus === 'pending_build'

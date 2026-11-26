@@ -479,7 +479,6 @@ function inspectBuildDirtyFiles(
 function computeBuildStatus(
   projectPath: string,
   git: ProjectCardData['git'],
-  versionMismatch: boolean,
   allBuildLogs: BuildLogEntry[],
   taptap: TapTapMeta
 ): BuildUploadStatus {
@@ -500,39 +499,37 @@ function computeBuildStatus(
   const latestUploadMs = latestUpload ? new Date(latestUpload.timestamp).getTime() : 0;
   const latestBuildMs = latestBuild ? new Date(latestBuild.timestamp).getTime() : 0;
 
-  // A build/upload check-in remains valid unless real code/runtime assets were modified AFTER that check-in
+  // A build/upload check-in remains valid unless real code/runtime assets were modified AFTER that check-in.
+  // Note: versionMismatch is tracked & surfaced independently and must NOT falsify an already-uploaded build as "pending_build".
   const hasBuildDirtyAfter = (tsMs: number): boolean => {
     if (buildDirtyCount === 0) return false;
     if (tsMs <= 0) return true;
     return latestBuildDirtyMtimeMs > tsMs + 2000;
   };
 
-  if (!versionMismatch) {
-    const uploadCoversHead =
-      Boolean(latestUpload) &&
-      ((Boolean(git.lastCommitShort) && latestUpload!.commitShort === git.lastCommitShort) ||
-        (latestUploadMs > 0 && latestUploadMs >= lastCommitMs));
+  const uploadCoversHead =
+    Boolean(latestUpload) &&
+    ((Boolean(git.lastCommitShort) && latestUpload!.commitShort === git.lastCommitShort) ||
+      (latestUploadMs > 0 && latestUploadMs >= lastCommitMs));
 
-    if (uploadCoversHead && !hasBuildDirtyAfter(latestUploadMs)) {
-      return 'synced';
-    }
-
-    const buildCoversHead =
-      Boolean(latestBuild) &&
-      ((Boolean(git.lastCommitShort) && latestBuild!.commitShort === git.lastCommitShort) ||
-        (latestBuildMs > 0 && latestBuildMs >= lastCommitMs));
-
-    if (buildCoversHead && !hasBuildDirtyAfter(latestBuildMs)) {
-      return latestBuild!.type === 'upload' ? 'synced' : 'pending_upload';
-    }
+  if (uploadCoversHead && !hasBuildDirtyAfter(latestUploadMs)) {
+    return 'synced';
   }
 
-  // If versionMismatch or build-relevant dirty files or commits newer than last build/upload -> pending_build
-  if (versionMismatch || buildDirtyCount > 0 || git.totalCommits > 0) {
-    // Official / public_test project with 0 build-relevant dirty files, no version mismatch, and no manual logs yet
+  const buildCoversHead =
+    Boolean(latestBuild) &&
+    ((Boolean(git.lastCommitShort) && latestBuild!.commitShort === git.lastCommitShort) ||
+      (latestBuildMs > 0 && latestBuildMs >= lastCommitMs));
+
+  if (buildCoversHead && !hasBuildDirtyAfter(latestBuildMs)) {
+    return latestBuild!.type === 'upload' ? 'synced' : 'pending_upload';
+  }
+
+  // If build-relevant dirty files or commits newer than last build/upload -> pending_build
+  if (buildDirtyCount > 0 || git.totalCommits > 0) {
+    // Official / public_test project with 0 build-relevant dirty files and no manual logs yet
     if (
       !latestBuild &&
-      !versionMismatch &&
       buildDirtyCount === 0 &&
       (taptap.releasePhase === 'official' || taptap.releasePhase === 'public_test')
     ) {
@@ -583,7 +580,7 @@ export async function scanSingleProject(
 
   const latestBuildLog = allBuildLogs.find((l) => l.type === 'build' || l.type === 'upload') || null;
   const latestUploadLog = allBuildLogs.find((l) => l.type === 'upload') || null;
-  const buildStatus = computeBuildStatus(folder.path, git, versionMismatch, allBuildLogs, taptap);
+  const buildStatus = computeBuildStatus(folder.path, git, allBuildLogs, taptap);
 
   const rawDisplayVersion =
     taptap.luaGameVersion ||
