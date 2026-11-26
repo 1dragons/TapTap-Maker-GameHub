@@ -326,6 +326,15 @@ export const GameCard: React.FC<GameCardProps> = ({
               )}
 
               {/* Build / Upload status */}
+              {project.buildStatus === 'synced' && (
+                <span
+                  className="flex items-center gap-1.5 font-medium"
+                  style={{ color: 'var(--pill-ok-text)' }}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <span>已上传</span>
+                </span>
+              )}
               {project.buildStatus === 'pending_build' && (
                 <span
                   className="flex items-center gap-1.5 font-medium"

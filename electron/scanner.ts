@@ -414,7 +414,70 @@ function inferStage(
   return 'concept';
 }
 
+const NON_BUILD_DIR_RE =
+  /(?:^|\/)(?:docs?|documentation|\.sop|\.maker|\.maker-mcp|\.maker-preview|\.tmp|\.ref|\.claude|\.cursor|\.codex|\.gemini|\.agents|\.workbuddy|acceptance|screenshots?|backups?|logs?|reports?|素材备份|聊天记录|备份|副本)(?:\/|$)/i;
+
+const NON_BUILD_FILE_RE =
+  /(?:^|\/)(?:\.gitignore|\.gitattributes|\.editorconfig|\.ds_store|thumbs\.db|save\.json(?:\.(?:backup|bak|pending|tmp))?|\.project\/(?:elevenlabs-voice-mapping|taptap-video-cache)\.json(?:\.meta)?)$|\.(?:md|txt|log|tmp|bak|backup|pending|html|pdf|docx?|xlsx?|pptx?)$/i;
+
+const NON_BUILD_PROMO_RE = /(?:^|\/)assets\/video(?:\/|$)/i;
+
+function isNonBuildDirtyPath(rawPath: string): boolean {
+  const norm = rawPath.replace(/\\/g, '/').replace(/\/+$/, '').trim();
+  if (!norm) return true;
+  return NON_BUILD_DIR_RE.test(norm) || NON_BUILD_FILE_RE.test(norm) || NON_BUILD_PROMO_RE.test(norm);
+}
+
+function getLatestMtimeRecursive(targetPath: string, maxDepth = 3, budget = { left: 120 }): number {
+  if (budget.left <= 0) return 0;
+  budget.left -= 1;
+  const st = safeStat(targetPath);
+  if (!st) return 0;
+  if (!st.isDirectory()) return st.mtimeMs;
+  let maxMs = st.mtimeMs;
+  if (maxDepth <= 0) return maxMs;
+  try {
+    const entries = fs.readdirSync(targetPath, { withFileTypes: true });
+    for (const e of entries) {
+      if (budget.left <= 0) break;
+      if (e.name === '.git' || e.name === 'node_modules') continue;
+      const childMs = getLatestMtimeRecursive(path.join(targetPath, e.name), maxDepth - 1, budget);
+      if (childMs > maxMs) maxMs = childMs;
+    }
+  } catch {
+    // ignore unreadable subdirs
+  }
+  return maxMs;
+}
+
+function inspectBuildDirtyFiles(
+  projectPath: string,
+  dirtyFiles: ProjectCardData['git']['dirtyFiles']
+): { buildDirtyCount: number; latestBuildDirtyMtimeMs: number } {
+  let buildDirtyCount = 0;
+  let latestBuildDirtyMtimeMs = 0;
+
+  for (const item of dirtyFiles) {
+    if (isNonBuildDirtyPath(item.path)) continue;
+    buildDirtyCount += 1;
+    const cleanRel = item.path.replace(/\/+$/, '');
+    const full = path.join(projectPath, cleanRel);
+    let mtimeMs = getLatestMtimeRecursive(full);
+    if (mtimeMs === 0) {
+      // Deleted file: fall back to parent directory mtime so deletions still carry a real timestamp
+      const parentSt = safeStat(path.dirname(full));
+      mtimeMs = parentSt ? parentSt.mtimeMs : 0;
+    }
+    if (mtimeMs > latestBuildDirtyMtimeMs) {
+      latestBuildDirtyMtimeMs = mtimeMs;
+    }
+  }
+
+  return { buildDirtyCount, latestBuildDirtyMtimeMs };
+}
+
 function computeBuildStatus(
+  projectPath: string,
   git: ProjectCardData['git'],
   versionMismatch: boolean,
   allBuildLogs: BuildLogEntry[],
@@ -429,31 +492,48 @@ function computeBuildStatus(
     return 'none';
   }
 
-  // If user checked in a build/upload matching current HEAD hash and no dirty files -> green!
-  if (latestUpload && git.lastCommitShort && latestUpload.commitShort === git.lastCommitShort && git.dirtyCount === 0 && !versionMismatch) {
-    return 'synced';
-  }
-  if (latestBuild && git.lastCommitShort && latestBuild.commitShort === git.lastCommitShort && git.dirtyCount === 0 && !versionMismatch) {
-    return latestBuild.type === 'upload' ? 'synced' : 'pending_upload';
-  }
-
-  // Compare timestamps when commitShort wasn't saved
+  const { buildDirtyCount, latestBuildDirtyMtimeMs } = inspectBuildDirtyFiles(
+    projectPath,
+    git.dirtyFiles
+  );
   const lastCommitMs = git.lastCommitDate ? new Date(git.lastCommitDate).getTime() : 0;
   const latestUploadMs = latestUpload ? new Date(latestUpload.timestamp).getTime() : 0;
   const latestBuildMs = latestBuild ? new Date(latestBuild.timestamp).getTime() : 0;
 
-  if (!versionMismatch && git.dirtyCount === 0) {
-    if (latestUploadMs > 0 && latestUploadMs >= lastCommitMs) return 'synced';
-    if (latestBuildMs > 0 && latestBuildMs >= lastCommitMs) return 'pending_upload';
+  // A build/upload check-in remains valid unless real code/runtime assets were modified AFTER that check-in
+  const hasBuildDirtyAfter = (tsMs: number): boolean => {
+    if (buildDirtyCount === 0) return false;
+    if (tsMs <= 0) return true;
+    return latestBuildDirtyMtimeMs > tsMs + 2000;
+  };
+
+  if (!versionMismatch) {
+    const uploadCoversHead =
+      Boolean(latestUpload) &&
+      ((Boolean(git.lastCommitShort) && latestUpload!.commitShort === git.lastCommitShort) ||
+        (latestUploadMs > 0 && latestUploadMs >= lastCommitMs));
+
+    if (uploadCoversHead && !hasBuildDirtyAfter(latestUploadMs)) {
+      return 'synced';
+    }
+
+    const buildCoversHead =
+      Boolean(latestBuild) &&
+      ((Boolean(git.lastCommitShort) && latestBuild!.commitShort === git.lastCommitShort) ||
+        (latestBuildMs > 0 && latestBuildMs >= lastCommitMs));
+
+    if (buildCoversHead && !hasBuildDirtyAfter(latestBuildMs)) {
+      return latestBuild!.type === 'upload' ? 'synced' : 'pending_upload';
+    }
   }
 
-  // If versionMismatch or dirty or commits newer than last build/upload -> pending_build
-  if (versionMismatch || git.dirtyCount > 0 || git.totalCommits > 0) {
-    // Special case: official/public_test project with 0 dirty files, no version mismatch, and no recent changes in > 7 days without manual logs yet
+  // If versionMismatch or build-relevant dirty files or commits newer than last build/upload -> pending_build
+  if (versionMismatch || buildDirtyCount > 0 || git.totalCommits > 0) {
+    // Official / public_test project with 0 build-relevant dirty files, no version mismatch, and no manual logs yet
     if (
       !latestBuild &&
       !versionMismatch &&
-      git.dirtyCount === 0 &&
+      buildDirtyCount === 0 &&
       (taptap.releasePhase === 'official' || taptap.releasePhase === 'public_test')
     ) {
       return 'synced';
@@ -503,7 +583,7 @@ export async function scanSingleProject(
 
   const latestBuildLog = allBuildLogs.find((l) => l.type === 'build' || l.type === 'upload') || null;
   const latestUploadLog = allBuildLogs.find((l) => l.type === 'upload') || null;
-  const buildStatus = computeBuildStatus(git, versionMismatch, allBuildLogs, taptap);
+  const buildStatus = computeBuildStatus(folder.path, git, versionMismatch, allBuildLogs, taptap);
 
   const rawDisplayVersion =
     taptap.luaGameVersion ||
