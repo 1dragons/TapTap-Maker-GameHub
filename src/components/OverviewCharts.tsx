@@ -25,7 +25,12 @@ export const OverviewCharts: React.FC<OverviewChartsProps> = ({
   const pendingBuildCount = active.filter(
     (p) => p.buildStatus === 'pending_build' || p.buildStatus === 'pending_upload'
   ).length;
-  const healthyCount = active.filter(
+  const publishedReadyCount = active.filter(
+    (p) =>
+      !p.versionMismatch &&
+      (p.buildStatus === 'synced' || (p.buildStatus === 'none' && p.git.dirtyCount === 0))
+  ).length;
+  const cleanWorkspaceCount = active.filter(
     (p) =>
       p.git.dirtyCount === 0 &&
       !p.versionMismatch &&
@@ -51,12 +56,12 @@ export const OverviewCharts: React.FC<OverviewChartsProps> = ({
     { label: '待构建/传', value: pendingBuildCount, dotColor: '#EA580C', filter: 'pending_build' },
   ];
 
-  // Minimalist SVG readiness ring
-  const readyPct = Math.round((healthyCount / totalActive) * 100);
-  const needsAttention = Math.max(0, active.length - healthyCount);
+  // Minimalist SVG readiness ring (aligned with actual build/upload & version readiness)
+  const readyPct = Math.round((publishedReadyCount / totalActive) * 100);
+  const needsReleaseCount = Math.max(0, active.length - publishedReadyCount);
   const radius = 36;
   const circumference = 2 * Math.PI * radius;
-  const readyArc = (healthyCount / totalActive) * circumference;
+  const readyArc = (publishedReadyCount / totalActive) * circumference;
 
   return (
     <section className="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-6">
@@ -200,22 +205,29 @@ export const OverviewCharts: React.FC<OverviewChartsProps> = ({
           </div>
         </div>
 
-        <div className="flex-1 space-y-2.5 min-w-0">
+        <div className="flex-1 space-y-2 min-w-0">
           <div className="text-xs font-semibold">发布健康度</div>
           <div className="space-y-1.5 text-xs">
             <div className="flex items-center justify-between">
               <span className="flex items-center gap-1.5" style={{ color: 'var(--text-secondary)' }}>
                 <span className="w-2 h-2 rounded-full bg-emerald-600" />
-                <span>状态干净</span>
+                <span>已发布就绪</span>
               </span>
-              <span className="font-mono font-semibold tabular-nums">{healthyCount}</span>
+              <span className="font-mono font-semibold tabular-nums">{publishedReadyCount}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="flex items-center gap-1.5" style={{ color: 'var(--text-secondary)' }}>
                 <span className="w-2 h-2 rounded-full bg-amber-500" />
-                <span>需处理项</span>
+                <span>待构建/冲突</span>
               </span>
-              <span className="font-mono font-semibold tabular-nums">{needsAttention}</span>
+              <span className="font-mono font-semibold tabular-nums">{needsReleaseCount}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5" style={{ color: 'var(--text-secondary)' }}>
+                <span className="w-2 h-2 rounded-full bg-sky-500" />
+                <span>工作区干净</span>
+              </span>
+              <span className="font-mono font-semibold tabular-nums">{cleanWorkspaceCount}</span>
             </div>
           </div>
         </div>
