@@ -11,6 +11,7 @@
 [![Releases](https://img.shields.io/github/v/release/1dragons/TapTap-Maker-GameHub?style=flat-square&color=f59e0b&label=Download)](https://github.com/1dragons/TapTap-Maker-GameHub/releases)
 
 <p>
+  <a href="#实机演示教程">实机演示</a> ·
   <a href="#界面预览">界面预览</a> ·
   <a href="#核心特性">核心特性</a> ·
   <a href="#快速开始">快速开始</a> ·
@@ -32,6 +33,16 @@
 > **为什么做 GameHub？**  
 > 当你的硬盘里同时推进着七八款甚至十几款独立小游戏时，最消耗心力的往往不是写代码本身，而是每天反复确认：**「每个项目做到哪一步了？哪些改动还没提交？版本号和构建包对得上吗？昨晚想到的好点子记哪了？换一个 AI 会话继续开发又要重头交代背景？」**  
 > **GameHub** 采用清爽的 **Apple 浅色毛玻璃（Liquid Glass）** 设计语言，**100% 纯本地只读扫描**（不上传数据、不改动游戏源码），并开箱内置整套 **TapTap Maker 小游戏开发 SOP 手册与模板**，把多项目掌控感还给创作者。
+
+---
+
+## 实机演示教程
+
+> 🎬 **42 秒 6 步实机上手导览（含语音解说，点击播放器右下角可开启声音）**：  
+> `01 自动扫描总览` → `02 资产与 7 阶段流程` → `03 多分支 Git 演进树` → `04 一键复制 AI 上下文` → `05 Ctrl+K 全局命令面板` → `06 20 周热力图 & 32 份开发 SOP`  
+> *(画面中出现的游戏名称纯属虚构 · 仅作功能演示)*
+
+https://github.com/user-attachments/assets/92b6a2b6-464e-4058-808d-fbee3fcdd648
 
 ---
 
