@@ -135,7 +135,7 @@
 ## 快速开始
 
 ### 方式一：直接下载安装包（推荐，无需配置环境）
-前往 **[Releases 页面](https://github.com/1dragons/TapTap-Maker-GameHub/releases)** 下载最新版 Windows 发行包（均附带 `SHA256SUMS.txt` 校验）：
+前往 **[Releases 页面](https://github.com/1dragons/TapTap-Maker-GameHub/releases)** 下载最新版 Windows 发行包（GitHub Releases 已自动提供官方 SHA-256 校验）：
 - **安装版**：`GameHub-*-win-x64-setup.exe`（自动创建桌面快捷方式）
 - **绿色便携版**：`GameHub-*-win-x64-portable.zip`（解压后双击 `GameHub.exe` 即可运行）
 

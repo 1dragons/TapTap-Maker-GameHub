@@ -1,4 +1,3 @@
-import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 
@@ -18,7 +17,6 @@ if (files.length === 0) {
   process.exit(1);
 }
 
-const sumLines = [];
 const mdRows = [];
 
 for (const name of files) {
@@ -26,13 +24,9 @@ for (const name of files) {
   const dst = path.join(publishDir, name);
   fs.copyFileSync(src, dst);
 
-  const hash = crypto.createHash('sha256').update(fs.readFileSync(dst)).digest('hex');
   const mb = (fs.statSync(dst).size / (1024 * 1024)).toFixed(2);
-  sumLines.push(`${hash}  ${name}`);
-  mdRows.push(`| \`${name}\` | ${mb} MB | \`${hash}\` |`);
+  mdRows.push(`| \`${name}\` | ${mb} MB |`);
 }
-
-fs.writeFileSync(path.join(publishDir, 'SHA256SUMS.txt'), `${sumLines.join('\n')}\n`, 'utf8');
 
 const body = [
   `## GameHub 游戏总控台 ${tag}（Windows x64 发行版）`,
@@ -49,14 +43,14 @@ const body = [
   '- 📖 **原生 5 模块 SOP 工作台**：内置 11 阶段交互流程、32 篇手册与离线 Mermaid 分支流程图、5 款开源中文字体实时文案对照、资源样例及「一键为项目接入 SOP」',
   '- 🔥 **工作室脉搏 & 提效工具**：20 周跨游戏开发热力图、一键复制 AI 续接上下文、从 Git 自动生成更新日志、`Ctrl + K` 全局命令面板',
   '',
-  '### SHA-256 文件校验',
-  '| 文件名 | 大小 | SHA-256 |',
-  '|---|---:|---|',
+  '### 发行包清单',
+  '| 文件名 | 大小 |',
+  '|---|---:|',
   ...mdRows,
   '',
-  '> Windows PowerShell 校验命令：`Get-FileHash -Algorithm SHA256 <文件名>`',
+  '> 各发行包的 SHA-256 校验值由 GitHub Releases 自动生成并展示在下方 Assets 列表中。',
   '',
 ].join('\n');
 
 fs.writeFileSync(path.join(publishDir, 'RELEASE_BODY.md'), body, 'utf8');
-console.log(`Generated SHA256SUMS.txt & RELEASE_BODY.md for ${files.length} artifacts.`);
+console.log(`Prepared RELEASE_BODY.md for ${files.length} artifacts.`);

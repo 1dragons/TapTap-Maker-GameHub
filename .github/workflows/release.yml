@@ -30,7 +30,7 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
         run: npm run release:win
 
-      - name: Generate SHA256SUMS.txt & Release Notes
+      - name: Prepare Release Assets & Notes
         run: node scripts/gen_release_meta.mjs "${{ github.ref_name }}"
 
       - name: Publish GitHub Release
@@ -43,4 +43,3 @@ jobs:
           files: |
             release/publish/*.exe
             release/publish/*.zip
-            release/publish/SHA256SUMS.txt
