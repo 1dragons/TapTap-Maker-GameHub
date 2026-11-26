@@ -1,0 +1,5 @@
+# Already present in the current environment; only the index builder uses this package.
+markdown-it-py==4.2.0
+# Optional font inspection and sample rendering tools used during delivery QA:
+fonttools>=4.0
+Pillow>=10.0

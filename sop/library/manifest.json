@@ -1,0 +1,322 @@
+{
+  "sop_version": "1.0.0",
+  "updated_at": "2026-10-31T20:50:52+08:00",
+  "items": [
+    {
+      "id": "ui-ux-pro-max-skill",
+      "kind": "reference",
+      "title": "ui-ux-pro-max-skill",
+      "source": "https://github.com/nextlevelbuilder/ui-ux-pro-max-skill",
+      "version": "9a3f14f7423037ccb8feeb4fee7482291b9c820e",
+      "download_url": "https://codeload.github.com/nextlevelbuilder/ui-ux-pro-max-skill/zip/9a3f14f7423037ccb8feeb4fee7482291b9c820e",
+      "usage": "只读研究；媒体授权单独核实；不执行脚本或安装技能",
+      "preview_path": "library/sources/ui-ux-pro-max-skill/study/website.png",
+      "status": "downloaded",
+      "fetched_at": "2026-10-31T20:50:52+08:00",
+      "files": [
+        {
+          "path": "library/sources/ui-ux-pro-max-skill/ui-ux-pro-max-skill-9a3f14f74230.zip",
+          "bytes": 8595476
+        },
+        {
+          "path": "library/sources/ui-ux-pro-max-skill/LICENSE",
+          "bytes": 1075
+        },
+        {
+          "path": "library/sources/ui-ux-pro-max-skill/README.az.md",
+          "bytes": 43838
+        },
+        {
+          "path": "library/sources/ui-ux-pro-max-skill/README.id.md",
+          "bytes": 35313
+        },
+        {
+          "path": "library/sources/ui-ux-pro-max-skill/README.ko.md",
+          "bytes": 33248
+        },
+        {
+          "path": "library/sources/ui-ux-pro-max-skill/README.md",
+          "bytes": 40012
+        },
+        {
+          "path": "library/sources/ui-ux-pro-max-skill/README.vi.md",
+          "bytes": 40937
+        },
+        {
+          "path": "library/sources/ui-ux-pro-max-skill/README.zh.md",
+          "bytes": 34114
+        },
+        {
+          "path": "library/sources/ui-ux-pro-max-skill/study/website.png",
+          "bytes": 1129328
+        },
+        {
+          "path": "library/sources/ui-ux-pro-max-skill/study/ux-guidelines.csv",
+          "bytes": 27516
+        },
+        {
+          "path": "library/sources/ui-ux-pro-max-skill/study/typography.csv",
+          "bytes": 49997
+        }
+      ],
+      "maker_verified": false,
+      "verification": "归档目录与说明文件可读；第三方代码未运行；媒体未授权"
+    },
+    {
+      "id": "Balatro-Feel",
+      "kind": "reference",
+      "title": "Balatro-Feel",
+      "source": "https://github.com/mixandjam/Balatro-Feel",
+      "version": "aa2c8acd0202126c788c0ff081692c9b69762961",
+      "download_url": "https://codeload.github.com/mixandjam/Balatro-Feel/zip/aa2c8acd0202126c788c0ff081692c9b69762961",
+      "usage": "只读研究；媒体授权单独核实；不执行脚本或安装技能",
+      "status": "downloaded",
+      "fetched_at": "2026-10-31T20:50:52+08:00",
+      "files": [
+        {
+          "path": "library/sources/Balatro-Feel/Balatro-Feel-aa2c8acd0202.zip",
+          "bytes": 2112275
+        },
+        {
+          "path": "library/sources/Balatro-Feel/LICENSE",
+          "bytes": 1068
+        },
+        {
+          "path": "library/sources/Balatro-Feel/README.md",
+          "bytes": 1354
+        },
+        {
+          "path": "library/sources/Balatro-Feel/study/Card.cs",
+          "bytes": 5843
+        },
+        {
+          "path": "library/sources/Balatro-Feel/study/CardVisual.cs",
+          "bytes": 7847
+        },
+        {
+          "path": "library/sources/Balatro-Feel/study/HorizontalCardHolder.cs",
+          "bytes": 4213
+        }
+      ],
+      "maker_verified": false,
+      "verification": "归档目录与说明文件可读；第三方代码未运行；媒体未授权"
+    },
+    {
+      "id": "magictools",
+      "kind": "reference",
+      "title": "magictools",
+      "source": "https://github.com/ellisonleao/magictools",
+      "version": "7080961ac29fd112d2accd7b2dd475fb8f5914da",
+      "download_url": "https://codeload.github.com/ellisonleao/magictools/zip/7080961ac29fd112d2accd7b2dd475fb8f5914da",
+      "usage": "只读研究；媒体授权单独核实；不执行脚本或安装技能",
+      "status": "downloaded",
+      "fetched_at": "2026-10-31T20:50:52+08:00",
+      "files": [
+        {
+          "path": "library/sources/magictools/magictools-7080961ac29f.zip",
+          "bytes": 90473
+        },
+        {
+          "path": "library/sources/magictools/LICENSE",
+          "bytes": 1064
+        },
+        {
+          "path": "library/sources/magictools/README.md",
+          "bytes": 60178
+        }
+      ],
+      "maker_verified": false,
+      "verification": "归档目录与说明文件可读；第三方代码未运行；媒体未授权"
+    },
+    {
+      "id": "wenkai",
+      "kind": "font",
+      "title": "霞鹜文楷 Regular",
+      "source": "https://github.com/lxgw/LxgwWenKai",
+      "version": "v1.530",
+      "download_url": "https://github.com/lxgw/LxgwWenKai/releases/download/v1.530/LXGWWenKai-Regular.ttf",
+      "font_path": "library/fonts/wenkai/LXGWWenKai-Regular.ttf",
+      "family": "WenKai",
+      "usage": "温暖生活叙事题材候选；需小字号阅读检查",
+      "status": "downloaded",
+      "fetched_at": "2026-10-31T20:50:52+08:00",
+      "files": [
+        {
+          "path": "library/fonts/wenkai/LXGWWenKai-Regular.ttf",
+          "bytes": 25928940
+        },
+        {
+          "path": "library/fonts/wenkai/OFL.txt",
+          "bytes": 5171
+        }
+      ],
+      "maker_verified": false,
+      "license": "OFL-1.1",
+      "verification": "文件已下载；字体结构、字符与浏览器显示另查",
+      "font_check": {
+        "status": "结构与样本文字覆盖通过",
+        "glyphs": 46926,
+        "missing": [],
+        "sample": "街角早餐店设施升级订单已完成余额不足请先完成订单暂未解锁正在保存返回继续￥1,234,567.89-1200/899+Lv.1200:0909:59100%",
+        "scope": "字体结构和指定样本文字；不涵盖项目全部文案或引擎渲染"
+      },
+      "browser_check": {
+        "status": "浏览器字体样张已查看",
+        "scope": "本地阅读页；并非 Maker 导入或真机验证"
+      }
+    },
+    {
+      "id": "smiley",
+      "kind": "font",
+      "title": "得意黑 Smiley Sans",
+      "source": "https://github.com/atelier-anchor/smiley-sans",
+      "version": "v2.0.1",
+      "download_url": "https://github.com/atelier-anchor/smiley-sans/releases/download/v2.0.1/smiley-sans-v2.0.1.zip",
+      "family": "Smiley",
+      "usage": "仅短标题候选；作者不推荐正文与手机界面长文本",
+      "font_path": "library/fonts/smiley/SmileySans-Oblique.ttf",
+      "status": "downloaded",
+      "fetched_at": "2026-10-31T20:50:52+08:00",
+      "files": [
+        {
+          "path": "library/fonts/smiley/smiley-sans-v2.0.1.zip",
+          "bytes": 5781344
+        },
+        {
+          "path": "library/fonts/smiley/SmileySans-Oblique.ttf",
+          "bytes": 2629764
+        },
+        {
+          "path": "library/fonts/smiley/LICENSE",
+          "bytes": 4422
+        }
+      ],
+      "maker_verified": false,
+      "license": "OFL-1.1",
+      "verification": "文件已下载；字体结构、字符与浏览器显示另查",
+      "font_check": {
+        "status": "结构与样本文字覆盖通过",
+        "glyphs": 9440,
+        "missing": [],
+        "sample": "街角早餐店设施升级订单已完成余额不足请先完成订单暂未解锁正在保存返回继续￥1,234,567.89-1200/899+Lv.1200:0909:59100%",
+        "scope": "字体结构和指定样本文字；不涵盖项目全部文案或引擎渲染"
+      },
+      "browser_check": {
+        "status": "浏览器字体样张已查看",
+        "scope": "本地阅读页；并非 Maker 导入或真机验证"
+      }
+    },
+    {
+      "id": "noto-regular",
+      "kind": "font",
+      "title": "Noto Sans CJK SC Regular",
+      "source": "https://github.com/notofonts/noto-cjk",
+      "version": "f8d157532fbfaeda587e826d4cd5b21a49186f7c",
+      "download_url": "https://raw.githubusercontent.com/notofonts/noto-cjk/f8d157532fbfaeda587e826d4cd5b21a49186f7c/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Regular.otf",
+      "font_path": "library/fonts/noto-sans-sc/NotoSansCJKsc-Regular.otf",
+      "family": "NotoSC-Regular",
+      "usage": "正文与按钮候选；需引擎兼容与小屏验证",
+      "status": "downloaded",
+      "fetched_at": "2026-10-31T20:50:52+08:00",
+      "files": [
+        {
+          "path": "library/fonts/noto-sans-sc/NotoSansCJKsc-Regular.otf",
+          "bytes": 16437364
+        },
+        {
+          "path": "library/fonts/noto-sans-sc/LICENSE",
+          "bytes": 4301
+        }
+      ],
+      "maker_verified": false,
+      "license": "OFL-1.1",
+      "verification": "文件已下载；字体结构、字符与浏览器显示另查",
+      "font_check": {
+        "status": "结构与样本文字覆盖通过",
+        "glyphs": 44810,
+        "missing": [],
+        "sample": "街角早餐店设施升级订单已完成余额不足请先完成订单暂未解锁正在保存返回继续￥1,234,567.89-1200/899+Lv.1200:0909:59100%",
+        "scope": "字体结构和指定样本文字；不涵盖项目全部文案或引擎渲染"
+      },
+      "browser_check": {
+        "status": "浏览器字体样张已查看",
+        "scope": "本地阅读页；并非 Maker 导入或真机验证"
+      }
+    },
+    {
+      "id": "noto-bold",
+      "kind": "font",
+      "title": "Noto Sans CJK SC Bold",
+      "source": "https://github.com/notofonts/noto-cjk",
+      "version": "f8d157532fbfaeda587e826d4cd5b21a49186f7c",
+      "download_url": "https://raw.githubusercontent.com/notofonts/noto-cjk/f8d157532fbfaeda587e826d4cd5b21a49186f7c/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Bold.otf",
+      "font_path": "library/fonts/noto-sans-sc/NotoSansCJKsc-Bold.otf",
+      "family": "NotoSC-Bold",
+      "usage": "正文与按钮候选；需引擎兼容与小屏验证",
+      "status": "downloaded",
+      "fetched_at": "2026-10-31T20:50:52+08:00",
+      "files": [
+        {
+          "path": "library/fonts/noto-sans-sc/NotoSansCJKsc-Bold.otf",
+          "bytes": 17002248
+        },
+        {
+          "path": "library/fonts/noto-sans-sc/LICENSE",
+          "bytes": 4301
+        }
+      ],
+      "maker_verified": false,
+      "license": "OFL-1.1",
+      "verification": "文件已下载；字体结构、字符与浏览器显示另查",
+      "font_check": {
+        "status": "结构与样本文字覆盖通过",
+        "glyphs": 44810,
+        "missing": [],
+        "sample": "街角早餐店设施升级订单已完成余额不足请先完成订单暂未解锁正在保存返回继续￥1,234,567.89-1200/899+Lv.1200:0909:59100%",
+        "scope": "字体结构和指定样本文字；不涵盖项目全部文案或引擎渲染"
+      },
+      "browser_check": {
+        "status": "浏览器字体样张已查看",
+        "scope": "本地阅读页；并非 Maker 导入或真机验证"
+      }
+    },
+    {
+      "id": "noto-medium",
+      "kind": "font",
+      "title": "Noto Sans CJK SC Medium",
+      "source": "https://github.com/notofonts/noto-cjk",
+      "version": "f8d157532fbfaeda587e826d4cd5b21a49186f7c",
+      "download_url": "https://raw.githubusercontent.com/notofonts/noto-cjk/f8d157532fbfaeda587e826d4cd5b21a49186f7c/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Medium.otf",
+      "font_path": "library/fonts/noto-sans-sc/NotoSansCJKsc-Medium.otf",
+      "family": "NotoSC-Medium",
+      "usage": "正文与按钮候选；需引擎兼容与小屏验证",
+      "status": "downloaded",
+      "fetched_at": "2026-10-31T20:50:52+08:00",
+      "files": [
+        {
+          "path": "library/fonts/noto-sans-sc/NotoSansCJKsc-Medium.otf",
+          "bytes": 16523632
+        },
+        {
+          "path": "library/fonts/noto-sans-sc/LICENSE",
+          "bytes": 4301
+        }
+      ],
+      "maker_verified": false,
+      "license": "OFL-1.1",
+      "verification": "文件已下载；字体结构、字符与浏览器显示另查",
+      "font_check": {
+        "status": "结构与样本文字覆盖通过",
+        "glyphs": 44810,
+        "missing": [],
+        "sample": "街角早餐店设施升级订单已完成余额不足请先完成订单暂未解锁正在保存返回继续￥1,234,567.89-1200/899+Lv.1200:0909:59100%",
+        "scope": "字体结构和指定样本文字；不涵盖项目全部文案或引擎渲染"
+      }
+    }
+  ],
+  "generated_samples": {
+    "status": "deferred_by_user",
+    "path": "samples/breakfast/样例说明.md",
+    "reason": "未绑定 Maker 项目；用户选择先完成其余交付"
+  }
+}

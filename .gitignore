@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Build & Electron packaging outputs (large binaries)
+dist/
+dist-electron/
+release/
+
+# Local personal state, notes, todos, custom covers & machine paths (NEVER commit!)
+data/
+*.local.json
+
+# OS / IDE / Logs
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+.vscode/
+.idea/
+__pycache__/
+*.pyc

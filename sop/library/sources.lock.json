@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-31",
+  "sources": [
+    {
+      "repo": "nextlevelbuilder/ui-ux-pro-max-skill",
+      "commit": "9a3f14f7423037ccb8feeb4fee7482291b9c820e"
+    },
+    {
+      "repo": "mixandjam/Balatro-Feel",
+      "commit": "aa2c8acd0202126c788c0ff081692c9b69762961"
+    },
+    {
+      "repo": "ellisonleao/magictools",
+      "commit": "7080961ac29fd112d2accd7b2dd475fb8f5914da"
+    }
+  ],
+  "noto": {
+    "repo": "notofonts/noto-cjk",
+    "commit": "f8d157532fbfaeda587e826d4cd5b21a49186f7c"
+  },
+  "wenkai": {
+    "repo": "lxgw/LxgwWenKai",
+    "tag": "v1.530"
+  },
+  "smiley": {
+    "repo": "atelier-anchor/smiley-sans",
+    "tag": "v2.0.1"
+  }
+}

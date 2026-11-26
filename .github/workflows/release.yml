@@ -1,0 +1,46 @@
+name: Release Windows Packages
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build & Package Windows Setup + Portable ZIP
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npm run release:win
+
+      - name: Generate SHA256SUMS.txt & Release Notes
+        run: node scripts/gen_release_meta.mjs "${{ github.ref_name }}"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "GameHub ${{ github.ref_name }}"
+          body_path: release/publish/RELEASE_BODY.md
+          draft: false
+          prerelease: false
+          files: |
+            release/publish/*.exe
+            release/publish/*.zip
+            release/publish/SHA256SUMS.txt

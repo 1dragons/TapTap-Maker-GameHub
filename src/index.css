@@ -1,0 +1,303 @@
+@import "tailwindcss";
+
+:root,
+.light {
+  --bg-app: #eaeff9;
+  --bg-sidebar: rgba(255, 255, 255, 0.52);
+  --bg-topbar: rgba(255, 255, 255, 0.58);
+  --bg-surface: rgba(255, 255, 255, 0.66);
+  --bg-surface-strong: rgba(255, 255, 255, 0.84);
+  --bg-elevated: rgba(241, 245, 253, 0.64);
+  --bg-hover: rgba(255, 255, 255, 0.82);
+  --bg-active-nav: rgba(255, 255, 255, 0.86);
+  --border-subtle: rgba(255, 255, 255, 0.78);
+  --border-strong: rgba(15, 23, 42, 0.13);
+  --glass-rim: rgba(255, 255, 255, 0.92);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #718096;
+  --accent-primary: #2563eb;
+  --accent-soft: rgba(37, 99, 235, 0.11);
+  --card-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 0 0 1px rgba(15, 23, 42, 0.045),
+    0 12px 32px -14px rgba(30, 58, 138, 0.12),
+    0 2px 6px -2px rgba(15, 23, 42, 0.04);
+  --card-shadow-hover:
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    0 0 0 1px rgba(37, 99, 235, 0.14),
+    0 20px 40px -14px rgba(37, 99, 235, 0.18),
+    0 4px 12px -4px rgba(15, 23, 42, 0.06);
+  --glass-bg: rgba(255, 255, 255, 0.82);
+
+  /* Soft Apple / Stripe pastel status pills */
+  --pill-ok-bg: rgba(236, 253, 245, 0.88);
+  --pill-ok-text: #047857;
+  --pill-ok-border: rgba(16, 185, 129, 0.25);
+
+  --pill-warn-bg: rgba(255, 251, 235, 0.92);
+  --pill-warn-text: #b45309;
+  --pill-warn-border: rgba(245, 158, 11, 0.3);
+
+  --pill-err-bg: rgba(255, 241, 242, 0.9);
+  --pill-err-text: #be123c;
+  --pill-err-border: rgba(244, 63, 94, 0.25);
+
+  --pill-info-bg: rgba(239, 246, 255, 0.9);
+  --pill-info-text: #1d4ed8;
+  --pill-info-border: rgba(59, 130, 246, 0.24);
+
+  --pill-neutral-bg: rgba(241, 245, 249, 0.82);
+  --pill-neutral-text: #475569;
+  --pill-neutral-border: rgba(148, 163, 184, 0.26);
+}
+
+.dark {
+  --bg-app: #0c1018;
+  --bg-sidebar: rgba(20, 25, 36, 0.65);
+  --bg-topbar: rgba(20, 25, 36, 0.72);
+  --bg-surface: rgba(24, 30, 44, 0.68);
+  --bg-surface-strong: rgba(28, 35, 50, 0.86);
+  --bg-elevated: rgba(34, 42, 60, 0.62);
+  --bg-hover: rgba(42, 52, 74, 0.72);
+  --bg-active-nav: rgba(42, 52, 74, 0.82);
+  --border-subtle: rgba(255, 255, 255, 0.085);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --glass-rim: rgba(255, 255, 255, 0.1);
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --accent-primary: #60a5fa;
+  --accent-soft: rgba(59, 130, 246, 0.18);
+  --card-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 12px 30px -14px rgba(0, 0, 0, 0.55);
+  --card-shadow-hover:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 18px 36px -14px rgba(0, 0, 0, 0.7);
+  --glass-bg: rgba(22, 28, 42, 0.86);
+
+  --pill-ok-bg: rgba(16, 185, 129, 0.15);
+  --pill-ok-text: #34d399;
+  --pill-ok-border: rgba(16, 185, 129, 0.28);
+
+  --pill-warn-bg: rgba(245, 158, 11, 0.15);
+  --pill-warn-text: #fbbf24;
+  --pill-warn-border: rgba(245, 158, 11, 0.3);
+
+  --pill-err-bg: rgba(244, 63, 94, 0.15);
+  --pill-err-text: #fb7185;
+  --pill-err-border: rgba(244, 63, 94, 0.28);
+
+  --pill-info-bg: rgba(59, 130, 246, 0.15);
+  --pill-info-text: #60a5fa;
+  --pill-info-border: rgba(59, 130, 246, 0.3);
+
+  --pill-neutral-bg: rgba(148, 163, 184, 0.12);
+  --pill-neutral-text: #94a3b8;
+  --pill-neutral-border: rgba(148, 163, 184, 0.2);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+  font-family: "Segoe UI Variable", "SF Pro Display", "Inter", "Microsoft YaHei UI", "PingFang SC", system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Apple macOS luminous light pastel ambient wallpapers behind frosted glass */
+.light .apple-glass-backdrop,
+.light[data-backdrop="aurora"] .apple-glass-backdrop {
+  background:
+    radial-gradient(56% 52% at 6% 8%, rgba(96, 165, 250, 0.42) 0%, rgba(96, 165, 250, 0) 68%),
+    radial-gradient(52% 48% at 92% 6%, rgba(167, 139, 250, 0.38) 0%, rgba(167, 139, 250, 0) 68%),
+    radial-gradient(48% 46% at 84% 90%, rgba(52, 211, 153, 0.28) 0%, rgba(52, 211, 153, 0) 70%),
+    radial-gradient(46% 44% at 18% 88%, rgba(251, 191, 36, 0.24) 0%, rgba(251, 191, 36, 0) 70%),
+    radial-gradient(40% 40% at 52% 48%, rgba(244, 114, 182, 0.14) 0%, rgba(244, 114, 182, 0) 70%),
+    linear-gradient(155deg, #eef4ff 0%, #e9eefb 48%, #f2f5fd 100%);
+}
+
+.light[data-backdrop="sakura"] .apple-glass-backdrop {
+  background:
+    radial-gradient(58% 54% at 10% 10%, rgba(251, 113, 133, 0.36) 0%, rgba(251, 113, 133, 0) 68%),
+    radial-gradient(54% 50% at 88% 12%, rgba(251, 191, 36, 0.32) 0%, rgba(251, 191, 36, 0) 68%),
+    radial-gradient(50% 48% at 76% 86%, rgba(196, 181, 253, 0.36) 0%, rgba(196, 181, 253, 0) 70%),
+    linear-gradient(155deg, #fff5f7 0%, #fdf2f8 48%, #fffbeb 100%);
+}
+
+.light[data-backdrop="mint"] .apple-glass-backdrop {
+  background:
+    radial-gradient(56% 52% at 12% 10%, rgba(52, 211, 153, 0.38) 0%, rgba(52, 211, 153, 0) 68%),
+    radial-gradient(54% 50% at 90% 14%, rgba(56, 189, 248, 0.38) 0%, rgba(56, 189, 248, 0) 68%),
+    radial-gradient(48% 46% at 70% 88%, rgba(167, 243, 208, 0.38) 0%, rgba(167, 243, 208, 0) 70%),
+    linear-gradient(155deg, #ecfdf5 0%, #f0f9ff 52%, #f0fdfa 100%);
+}
+
+.light[data-backdrop="sunset"] .apple-glass-backdrop {
+  background:
+    radial-gradient(56% 52% at 8% 10%, rgba(251, 146, 60, 0.36) 0%, rgba(251, 146, 60, 0) 68%),
+    radial-gradient(52% 48% at 90% 12%, rgba(244, 114, 182, 0.34) 0%, rgba(244, 114, 182, 0) 68%),
+    radial-gradient(48% 46% at 80% 88%, rgba(253, 224, 71, 0.3) 0%, rgba(253, 224, 71, 0) 70%),
+    linear-gradient(155deg, #fff7ed 0%, #fef2f2 48%, #faf5ff 100%);
+}
+
+.light[data-backdrop="violet"] .apple-glass-backdrop {
+  background:
+    radial-gradient(56% 52% at 10% 8%, rgba(139, 92, 246, 0.4) 0%, rgba(139, 92, 246, 0) 68%),
+    radial-gradient(54% 50% at 90% 10%, rgba(96, 165, 250, 0.38) 0%, rgba(96, 165, 250, 0) 68%),
+    radial-gradient(48% 46% at 72% 88%, rgba(232, 121, 249, 0.28) 0%, rgba(232, 121, 249, 0) 70%),
+    linear-gradient(155deg, #f5f3ff 0%, #eef2ff 50%, #fdf4ff 100%);
+}
+
+.light[data-backdrop="snow"] .apple-glass-backdrop {
+  background:
+    radial-gradient(60% 55% at 15% 10%, rgba(226, 232, 240, 0.55) 0%, rgba(226, 232, 240, 0) 70%),
+    radial-gradient(55% 50% at 85% 90%, rgba(219, 234, 254, 0.4) 0%, rgba(219, 234, 254, 0) 70%),
+    linear-gradient(160deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+/* Glass Intensity Presets (Clear / Balanced / Frosted) */
+.light[data-glass="clear"] {
+  --bg-sidebar: rgba(255, 255, 255, 0.38);
+  --bg-topbar: rgba(255, 255, 255, 0.44);
+  --bg-surface: rgba(255, 255, 255, 0.52);
+  --bg-surface-strong: rgba(255, 255, 255, 0.74);
+}
+
+.light[data-glass="frosted"] {
+  --bg-sidebar: rgba(255, 255, 255, 0.76);
+  --bg-topbar: rgba(255, 255, 255, 0.82);
+  --bg-surface: rgba(255, 255, 255, 0.86);
+  --bg-surface-strong: rgba(255, 255, 255, 0.95);
+}
+
+.dark[data-glass="clear"] {
+  --bg-sidebar: rgba(20, 25, 36, 0.48);
+  --bg-topbar: rgba(20, 25, 36, 0.54);
+  --bg-surface: rgba(24, 30, 44, 0.5);
+}
+
+.dark[data-glass="frosted"] {
+  --bg-sidebar: rgba(20, 25, 36, 0.84);
+  --bg-topbar: rgba(20, 25, 36, 0.88);
+  --bg-surface: rgba(24, 30, 44, 0.86);
+}
+
+.dark .apple-glass-backdrop {
+  background:
+    radial-gradient(55% 48% at 12% 10%, rgba(37, 99, 235, 0.22) 0%, rgba(37, 99, 235, 0) 68%),
+    radial-gradient(50% 45% at 88% 12%, rgba(124, 58, 237, 0.18) 0%, rgba(124, 58, 237, 0) 68%),
+    radial-gradient(45% 45% at 72% 88%, rgba(16, 185, 129, 0.12) 0%, rgba(16, 185, 129, 0) 70%),
+    linear-gradient(160deg, #0b0f17 0%, #0e131e 100%);
+}
+
+.glass-sidebar {
+  background-color: var(--bg-sidebar);
+  backdrop-filter: blur(28px) saturate(185%);
+  -webkit-backdrop-filter: blur(28px) saturate(185%);
+  box-shadow: inset -1px 0 0 var(--glass-rim);
+}
+
+.glass-topbar {
+  background-color: var(--bg-topbar);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+}
+
+.glass-card {
+  background-color: var(--bg-surface);
+  backdrop-filter: blur(20px) saturate(170%);
+  -webkit-backdrop-filter: blur(20px) saturate(170%);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--card-shadow);
+}
+
+.glass-card-interactive {
+  background-color: var(--bg-surface);
+  backdrop-filter: blur(20px) saturate(170%);
+  -webkit-backdrop-filter: blur(20px) saturate(170%);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--card-shadow);
+  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease, background-color 200ms ease;
+}
+
+.glass-card-interactive:hover {
+  background-color: var(--bg-surface-strong);
+  border-color: var(--border-strong);
+  box-shadow: var(--card-shadow-hover);
+  transform: translateY(-2px);
+}
+
+.glass-drawer {
+  background-color: var(--glass-bg);
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.titlebar-drag {
+  -webkit-app-region: drag;
+}
+
+.titlebar-nodrag {
+  -webkit-app-region: no-drag;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.22);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.38);
+}
+
+@keyframes pulseRing {
+  0% {
+    transform: scale(0.96);
+    opacity: 0.65;
+  }
+  70% {
+    transform: scale(1.38);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.38);
+    opacity: 0;
+  }
+}
+
+.animate-pulse-ring {
+  animation: pulseRing 2.4s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+}
+
+@keyframes dashFlow {
+  to {
+    stroke-dashoffset: -16;
+  }
+}
+
+.animate-dash-flow {
+  animation: dashFlow 1.4s linear infinite;
+}
