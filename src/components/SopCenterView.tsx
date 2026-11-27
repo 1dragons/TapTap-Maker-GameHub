@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import {
   ProjectCardData,
+  SkillClientId,
   SopDocItem,
   SopFontDownloadProgress,
   SopLibraryData,
@@ -97,6 +98,13 @@ const FONT_PRESETS = [
   '街角早餐店 · 今天也要好好经营',
   '恭喜升级 Lv.12！新菜品「鲜肉生煎」已解锁',
   '今日营业额突破新高，点击领取奖励',
+];
+
+const SKILL_CLIENT_OPTIONS: { id: SkillClientId; label: string; pathHint: string }[] = [
+  { id: 'antigravity', label: 'Antigravity', pathHint: '~/.gemini/config/skills' },
+  { id: 'codex', label: 'Codex', pathHint: '~/.codex/skills' },
+  { id: 'claude', label: 'Claude Code', pathHint: '~/.claude/skills' },
+  { id: 'cursor', label: 'Cursor', pathHint: '~/.cursor/skills' },
 ];
 
 function resolveRelativeDocId(currentRelPath: string, href: string): string {
@@ -442,6 +450,8 @@ export const SopCenterView: React.FC<SopCenterViewProps> = ({
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [connectingKey, setConnectingKey] = useState<string | null>(null);
   const [installingSkill, setInstallingSkill] = useState(false);
+  const [installingSkillId, setInstallingSkillId] = useState<string | null>(null);
+  const [skillClient, setSkillClient] = useState<SkillClientId>('antigravity');
   const [toastMsg, setToastMsg] = useState<{ text: string; kind: 'ok' | 'err' } | null>(null);
 
   const showToast = (text: string, kind: 'ok' | 'err' = 'ok') => {
@@ -616,17 +626,30 @@ export const SopCenterView: React.FC<SopCenterViewProps> = ({
     }
   };
 
-  const handleInstallSkill = async () => {
-    setInstallingSkill(true);
+  const handleInstallSkills = async (skillIds?: string[]) => {
+    const isAll = !skillIds || skillIds.length === 0;
+    if (isAll) setInstallingSkill(true);
+    else setInstallingSkillId(skillIds[0]);
     try {
-      const res = await window.gameHub.installSopSkill();
+      const res = await window.gameHub.installSopSkill({
+        target: skillClient,
+        skillIds,
+        overwrite: true,
+      });
       if (res.ok) {
-        showToast(`Codex Skill 已安装到 ${res.installedPath}（新聊天生效）`);
+        await loadLibrary();
+        const clientLabel =
+          SKILL_CLIENT_OPTIONS.find((c) => c.id === skillClient)?.label || skillClient;
+        const count = res.installedIds?.length || 1;
+        showToast(
+          `已将 ${count} 个技能安装/更新至 ${clientLabel}（${res.installedPath}），新聊天生效`
+        );
       } else {
         showToast(res.error || '安装 Skill 失败', 'err');
       }
     } finally {
       setInstallingSkill(false);
+      setInstallingSkillId(null);
     }
   };
 
@@ -2039,6 +2062,189 @@ export const SopCenterView: React.FC<SopCenterViewProps> = ({
       {/* ==================== TAB 05: 调用与验收 ==================== */}
       {activeTab === 'start' && (
         <div className="space-y-5">
+          {/* Native 4-Skill Suite One-Click Installer */}
+          {library && library.bundledSkills && library.bundledSkills.length > 0 && (
+            <div className="glass-card rounded-2xl p-5 space-y-4">
+              <div className="flex items-start justify-between gap-3 flex-wrap">
+                <div>
+                  <div
+                    className="text-[10.5px] font-bold tracking-[0.2em] uppercase mb-1"
+                    style={{ color: '#7C3AED' }}
+                  >
+                    TAPTAP MAKER AI SKILL SUITE
+                  </div>
+                  <h2 className="text-lg font-extrabold tracking-tight flex items-center gap-2 flex-wrap">
+                    <Sparkles className="w-4.5 h-4.5 text-violet-600" />
+                    <span>内置开发四件套 AI 技能 · 一键安装</span>
+                    <span
+                      className="px-2 py-0.5 rounded-full text-xs font-mono font-semibold"
+                      style={{ backgroundColor: 'var(--pill-info-bg)', color: 'var(--pill-info-text)' }}
+                    >
+                      {library.bundledSkills.length} 套完整技能
+                    </span>
+                  </h2>
+                  <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+                    开箱内置完整 SOP v2.0、发布前全量 QA 静态审计与 HTML 看板脚本、运营文案头图规范、GamePropel 诊断看板脚本；安装时自动替换为你本机真实路径。
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div
+                    className="inline-flex p-1 rounded-xl border"
+                    style={{
+                      backgroundColor: 'var(--bg-elevated)',
+                      borderColor: 'var(--border-subtle)',
+                    }}
+                  >
+                    {SKILL_CLIENT_OPTIONS.map((c) => {
+                      const active = skillClient === c.id;
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          title={`安装目标目录：${c.pathHint}`}
+                          onClick={() => setSkillClient(c.id)}
+                          className="h-7 px-2.5 rounded-lg text-[11px] font-semibold cursor-pointer transition-all"
+                          style={{
+                            backgroundColor: active ? 'var(--bg-surface-strong)' : 'transparent',
+                            color: active ? 'var(--accent-primary)' : 'var(--text-muted)',
+                            boxShadow: active ? 'var(--card-shadow)' : 'none',
+                          }}
+                        >
+                          {c.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <button
+                    disabled={installingSkill}
+                    onClick={() => handleInstallSkills()}
+                    className="h-9 px-3.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-white cursor-pointer shadow-xs disabled:opacity-60 hover:opacity-92"
+                    style={{ backgroundColor: '#7C3AED' }}
+                  >
+                    {installingSkill ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Terminal className="w-3.5 h-3.5" />
+                    )}
+                    <span>
+                      {installingSkill
+                        ? '正在安装四件套…'
+                        : `一键安装全部到 ${SKILL_CLIENT_OPTIONS.find((c) => c.id === skillClient)?.label}`}
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {library.bundledSkills.map((sk) => {
+                  const status = sk.installedTargets[skillClient];
+                  const busy = installingSkill || installingSkillId === sk.id;
+                  return (
+                    <div
+                      key={sk.id}
+                      className="p-3.5 rounded-xl border flex flex-col justify-between gap-2.5"
+                      style={{
+                        backgroundColor: 'var(--bg-surface-strong)',
+                        borderColor:
+                          status === 'installed' ? 'var(--pill-ok-border)' : 'var(--border-subtle)',
+                      }}
+                    >
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span
+                              className="px-2 py-0.5 rounded-md text-[10px] font-bold border"
+                              style={{
+                                backgroundColor: 'var(--pill-info-bg)',
+                                color: 'var(--pill-info-text)',
+                                borderColor: 'var(--pill-info-border)',
+                              }}
+                            >
+                              {sk.stageBadge}
+                            </span>
+                            <code
+                              className="text-[11px] font-mono font-semibold"
+                              style={{ color: 'var(--text-primary)' }}
+                            >
+                              ${sk.id}
+                            </code>
+                          </div>
+
+                          <span
+                            className="px-2 py-0.5 rounded-full text-[10.5px] font-semibold border shrink-0"
+                            style={
+                              status === 'installed'
+                                ? {
+                                    backgroundColor: 'var(--pill-ok-bg)',
+                                    color: 'var(--pill-ok-text)',
+                                    borderColor: 'var(--pill-ok-border)',
+                                  }
+                                : status === 'outdated'
+                                ? {
+                                    backgroundColor: 'var(--pill-warn-bg)',
+                                    color: 'var(--pill-warn-text)',
+                                    borderColor: 'var(--pill-warn-border)',
+                                  }
+                                : {
+                                    backgroundColor: 'var(--bg-elevated)',
+                                    color: 'var(--text-muted)',
+                                    borderColor: 'var(--border-subtle)',
+                                  }
+                            }
+                          >
+                            {status === 'installed'
+                              ? '已安装最新'
+                              : status === 'outdated'
+                              ? '有新版可同步'
+                              : '未安装'}
+                          </span>
+                        </div>
+
+                        <div className="text-xs font-bold">{sk.title}</div>
+                        <p className="text-[11px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                          {sk.description}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-2 pt-1.5 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
+                        <span className="text-[10.5px] font-mono" style={{ color: 'var(--text-muted)' }}>
+                          共 {sk.fileCount} 个文件
+                        </span>
+                        <button
+                          disabled={busy}
+                          onClick={() => handleInstallSkills([sk.id])}
+                          className="h-7 px-2.5 rounded-lg text-[11px] font-semibold border flex items-center gap-1 cursor-pointer hover:border-violet-500 hover:text-violet-600 disabled:opacity-50"
+                          style={{
+                            backgroundColor: 'var(--bg-elevated)',
+                            borderColor: 'var(--border-subtle)',
+                            color: 'var(--text-primary)',
+                          }}
+                        >
+                          {installingSkillId === sk.id ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : status === 'installed' ? (
+                            <Check className="w-3 h-3 text-emerald-600" />
+                          ) : (
+                            <Download className="w-3 h-3 text-violet-600" />
+                          )}
+                          <span>
+                            {status === 'installed'
+                              ? '重新同步'
+                              : status === 'outdated'
+                              ? '更新到最新'
+                              : '安装此技能'}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Native One-Click Project Connect Panel */}
           <div className="glass-card rounded-2xl p-5 space-y-4">
             <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -2066,15 +2272,6 @@ export const SopCenterView: React.FC<SopCenterViewProps> = ({
               </div>
 
               <div className="flex items-center gap-2 shrink-0 flex-wrap">
-                <button
-                  disabled={installingSkill}
-                  onClick={handleInstallSkill}
-                  className="h-8 px-3.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-white cursor-pointer shadow-xs disabled:opacity-60"
-                  style={{ backgroundColor: '#235D48' }}
-                >
-                  {installingSkill ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Terminal className="w-3.5 h-3.5" />}
-                  <span>一键安装 Codex Skill</span>
-                </button>
                 <button
                   onClick={() => window.gameHub.openSopFolder()}
                   className="h-8 px-3 rounded-xl text-xs font-semibold flex items-center gap-1.5 border cursor-pointer hover:border-emerald-500"

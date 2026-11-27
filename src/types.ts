@@ -97,6 +97,7 @@ export interface AppSettings {
   gitCommitLimit: number;
   gitHideSyncByDefault: boolean;
   autoArchiveCopies: boolean;
+  autoCheckUpdate?: boolean;
   sopPath?: string;
   ai?: AiProviderConfig;
 }
@@ -382,9 +383,29 @@ export interface SopConnectResult {
   error?: string;
 }
 
+export type SkillClientId = 'antigravity' | 'codex' | 'claude' | 'cursor';
+
+export interface BundledSkillInfo {
+  id: string;
+  title: string;
+  stageBadge: string;
+  description: string;
+  fileCount: number;
+  installedTargets: Record<SkillClientId, 'installed' | 'outdated' | 'missing'>;
+}
+
+export interface SopSkillInstallOptions {
+  target?: SkillClientId;
+  skillIds?: string[];
+  overwrite?: boolean;
+}
+
 export interface SopSkillInstallResult {
   ok: boolean;
+  target?: SkillClientId;
   installedPath?: string;
+  installedIds?: string[];
+  skippedIds?: string[];
   files?: number;
   error?: string;
 }
@@ -417,6 +438,7 @@ export interface SopLibraryData {
   fontInstalledCount: number;
   fontTotalCount: number;
   reports: SopReportItem[];
+  bundledSkills: BundledSkillInfo[];
 }
 
 export type FeedbackCategoryId =
@@ -548,6 +570,44 @@ export interface AiModelsListResult {
   error?: string;
 }
 
+export type UpdateInstallMode = 'installer' | 'portable' | 'dev';
+
+export interface UpdateAssetInfo {
+  name: string;
+  downloadUrl: string;
+  size: number;
+  sha256?: string;
+}
+
+export interface UpdateCheckResult {
+  ok: boolean;
+  currentVersion: string;
+  latestVersion?: string;
+  hasUpdate: boolean;
+  installMode: UpdateInstallMode;
+  releaseName?: string;
+  releaseNotes?: string;
+  publishedAt?: string;
+  releaseUrl?: string;
+  installerAsset?: UpdateAssetInfo;
+  portableAsset?: UpdateAssetInfo;
+  error?: string;
+}
+
+export interface UpdateDownloadProgress {
+  stage: 'backup' | 'downloading' | 'verifying' | 'extracting' | 'applying' | 'error';
+  percent: number;
+  downloadedBytes?: number;
+  totalBytes?: number;
+  message: string;
+}
+
+export interface UpdateApplyResult {
+  ok: boolean;
+  backupPath?: string;
+  error?: string;
+}
+
 export type QuickFilterId =
   | 'all'
   | 'pulse'
@@ -588,7 +648,7 @@ export interface GameHubBridge {
   openSopFolder: () => Promise<void>;
   openSopAsset: (relPath: string) => Promise<boolean>;
   connectProjectSop: (projectPath: string, mode: 'new' | 'existing') => Promise<SopConnectResult>;
-  installSopSkill: () => Promise<SopSkillInstallResult>;
+  installSopSkill: (options?: SopSkillInstallOptions) => Promise<SopSkillInstallResult>;
   downloadSopFonts: () => Promise<{ ok: boolean; installed: number; total: number; error?: string }>;
   onSopFontProgress: (cb: (p: SopFontDownloadProgress) => void) => () => void;
   getState: () => Promise<HubPersistedState>;
@@ -596,6 +656,10 @@ export interface GameHubBridge {
   updateSettings: (patch: Partial<AppSettings>) => Promise<HubPersistedState>;
   getLoginStartup: () => Promise<boolean>;
   setLoginStartup: (enabled: boolean) => Promise<boolean>;
+  getAppVersion: () => Promise<string>;
+  checkForUpdates: () => Promise<UpdateCheckResult>;
+  applyAppUpdate: (info: UpdateCheckResult) => Promise<UpdateApplyResult>;
+  onUpdateProgress: (cb: (p: UpdateDownloadProgress) => void) => () => void;
   getDataPath: () => Promise<string>;
   exportBackup: () => Promise<string | null>;
   importBackup: () => Promise<HubPersistedState | null>;

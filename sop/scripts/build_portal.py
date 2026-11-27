@@ -66,7 +66,7 @@ def build() -> dict:
             cells = [cell.strip() for cell in line.strip('|').split('|')]
             if len(cells) == 5:
                 stages.append({'name': cells[0], 'input': cells[1], 'work': cells[2], 'pass': cells[3], 'fail': cells[4]})
-    catalog = {'version': '1.0.0', 'documents': documents, 'stages': stages, 'library': manifest,
+    catalog = {'version': '2.0.0', 'documents': documents, 'stages': stages, 'library': manifest,
                'generation': json.loads((ROOT / 'samples/breakfast/generation-plan.json').read_text(encoding='utf-8'))}
     OUTPUT.mkdir(exist_ok=True)
     # External JS works on file:// as well as localhost; no fetch or remote dependency.

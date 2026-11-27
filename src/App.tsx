@@ -13,6 +13,7 @@ import { Sidebar } from './components/Sidebar';
 import { SopCenterView } from './components/SopCenterView';
 import { StudioPulseView } from './components/StudioPulseView';
 import { TitleBar } from './components/TitleBar';
+import { UpdateModal } from './components/UpdateModal';
 import { LIFECYCLE_STAGES, STAGE_INDEX_MAP } from './constants';
 import {
   AppSettings,
@@ -23,6 +24,7 @@ import {
   QuickFilterId,
   QuickNoteItem,
   StageTodoItem,
+  UpdateCheckResult,
 } from './types';
 import { mediaUrl } from './utils';
 
@@ -34,6 +36,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   gitCommitLimit: 100,
   gitHideSyncByDefault: false,
   autoArchiveCopies: true,
+  autoCheckUpdate: true,
   sopPath: '',
   ai: { baseUrl: '', apiKey: '', model: '', reasoningEffort: 'low' },
 };
@@ -58,6 +61,10 @@ export default function App() {
   const [showPalette, setShowPalette] = useState(false);
   const [confirmClearArchived, setConfirmClearArchived] = useState(false);
   const [maximized, setMaximized] = useState(false);
+  const [appVersion, setAppVersion] = useState('1.2.0');
+  const [updateInfo, setUpdateInfo] = useState<UpdateCheckResult | null>(null);
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
 
   const applyVisualAttributes = (theme: 'dark' | 'light', settings: AppSettings) => {
     const html = document.documentElement;
@@ -82,24 +89,53 @@ export default function App() {
     }
   };
 
+  const handleCheckUpdate = async (openModal = true) => {
+    if (checkingUpdate) return;
+    setCheckingUpdate(true);
+    try {
+      const res = await window.gameHub.checkForUpdates();
+      setUpdateInfo(res);
+      if (openModal) {
+        setShowUpdateModal(true);
+      }
+    } finally {
+      setCheckingUpdate(false);
+    }
+  };
+
   useEffect(() => {
     let cleanup: (() => void) | undefined;
+    let updateTimer: ReturnType<typeof setTimeout> | undefined;
     (async () => {
-      const [st, isMax] = await Promise.all([
+      const [st, isMax, ver] = await Promise.all([
         window.gameHub.getState(),
         window.gameHub.winIsMaximized(),
+        window.gameHub.getAppVersion(),
       ]);
       const normalizedSettings = { ...DEFAULT_SETTINGS, ...(st.settings || {}) };
       const fullState: HubPersistedState = { ...st, settings: normalizedSettings };
       setHubState(fullState);
       setViewMode(normalizedSettings.defaultViewMode || 'grid');
       setMaximized(isMax);
+      if (ver) setAppVersion(ver);
       applyVisualAttributes(fullState.theme, normalizedSettings);
       await scanAll();
+
+      if (normalizedSettings.autoCheckUpdate !== false) {
+        updateTimer = setTimeout(() => {
+          window.gameHub
+            .checkForUpdates()
+            .then((res) => {
+              if (res.ok) setUpdateInfo(res);
+            })
+            .catch(() => {});
+        }, 2500);
+      }
     })();
     cleanup = window.gameHub.onWindowState((isMax) => setMaximized(isMax));
     return () => {
       cleanup?.();
+      if (updateTimer) clearTimeout(updateTimer);
     };
   }, []);
 
@@ -322,6 +358,9 @@ export default function App() {
         selectedProjectId={selectedId}
         quickFilter={quickFilter}
         stageFilter={stageFilter}
+        appVersion={appVersion}
+        updateInfo={updateInfo}
+        checkingUpdate={checkingUpdate}
         onSelectHomeFilter={(f) => {
           setSelectedId(null);
           setStageFilter(null);
@@ -337,6 +376,11 @@ export default function App() {
           setSelectedId(null);
           setStageFilter(null);
           setQuickFilter('settings');
+        }}
+        onCheckUpdate={() => handleCheckUpdate(true)}
+        onOpenUpdateModal={() => {
+          if (updateInfo) setShowUpdateModal(true);
+          else handleCheckUpdate(true);
         }}
       />
 
@@ -382,6 +426,9 @@ export default function App() {
             <SettingsView
               hubState={hubState}
               scanning={scanning}
+              appVersion={appVersion}
+              updateInfo={updateInfo}
+              checkingUpdate={checkingUpdate}
               onSetTheme={handleSetTheme}
               onUpdateSettings={handleUpdateSettings}
               onAddRoot={handleAddRoot}
@@ -389,6 +436,11 @@ export default function App() {
               onRescanAll={scanAll}
               onRestoreRemoved={handleRestoreRemoved}
               onStateReplaced={handleStateReplaced}
+              onCheckUpdate={() => handleCheckUpdate(true)}
+              onOpenUpdateModal={() => {
+                if (updateInfo) setShowUpdateModal(true);
+                else handleCheckUpdate(true);
+              }}
             />
           ) : quickFilter === 'pulse' ? (
             <StudioPulseView
@@ -656,6 +708,15 @@ export default function App() {
           }}
           onToggleTheme={handleToggleTheme}
           onRefreshAll={scanAll}
+        />
+      )}
+
+      {showUpdateModal && updateInfo && (
+        <UpdateModal
+          info={updateInfo}
+          checking={checkingUpdate}
+          onRecheck={() => handleCheckUpdate(true)}
+          onClose={() => setShowUpdateModal(false)}
         />
       )}
     </div>

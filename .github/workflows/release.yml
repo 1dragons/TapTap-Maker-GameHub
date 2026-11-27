@@ -45,3 +45,4 @@ jobs:
           files: |
             release/publish/*.exe
             release/publish/*.zip
+            release/publish/latest.json

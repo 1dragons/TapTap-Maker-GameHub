@@ -97,6 +97,7 @@ export interface AppSettings {
   gitCommitLimit: number;
   gitHideSyncByDefault: boolean;
   autoArchiveCopies: boolean;
+  autoCheckUpdate?: boolean;
   sopPath?: string;
   ai?: AiProviderConfig;
 }
@@ -382,9 +383,29 @@ export interface SopConnectResult {
   error?: string;
 }
 
+export type SkillClientId = 'antigravity' | 'codex' | 'claude' | 'cursor';
+
+export interface BundledSkillInfo {
+  id: string;
+  title: string;
+  stageBadge: string;
+  description: string;
+  fileCount: number;
+  installedTargets: Record<SkillClientId, 'installed' | 'outdated' | 'missing'>;
+}
+
+export interface SopSkillInstallOptions {
+  target?: SkillClientId;
+  skillIds?: string[];
+  overwrite?: boolean;
+}
+
 export interface SopSkillInstallResult {
   ok: boolean;
+  target?: SkillClientId;
   installedPath?: string;
+  installedIds?: string[];
+  skippedIds?: string[];
   files?: number;
   error?: string;
 }
@@ -417,6 +438,7 @@ export interface SopLibraryData {
   fontInstalledCount: number;
   fontTotalCount: number;
   reports: SopReportItem[];
+  bundledSkills: BundledSkillInfo[];
 }
 
 export type FeedbackCategoryId =
@@ -545,5 +567,43 @@ export interface AiConnectionTestResult {
 export interface AiModelsListResult {
   ok: boolean;
   models?: string[];
+  error?: string;
+}
+
+export type UpdateInstallMode = 'installer' | 'portable' | 'dev';
+
+export interface UpdateAssetInfo {
+  name: string;
+  downloadUrl: string;
+  size: number;
+  sha256?: string;
+}
+
+export interface UpdateCheckResult {
+  ok: boolean;
+  currentVersion: string;
+  latestVersion?: string;
+  hasUpdate: boolean;
+  installMode: UpdateInstallMode;
+  releaseName?: string;
+  releaseNotes?: string;
+  publishedAt?: string;
+  releaseUrl?: string;
+  installerAsset?: UpdateAssetInfo;
+  portableAsset?: UpdateAssetInfo;
+  error?: string;
+}
+
+export interface UpdateDownloadProgress {
+  stage: 'backup' | 'downloading' | 'verifying' | 'extracting' | 'applying' | 'error';
+  percent: number;
+  downloadedBytes?: number;
+  totalBytes?: number;
+  message: string;
+}
+
+export interface UpdateApplyResult {
+  ok: boolean;
+  backupPath?: string;
   error?: string;
 }

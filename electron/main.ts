@@ -23,6 +23,7 @@ import {
   testAiConnection,
 } from './taptapFeedback';
 import { getProjectTelemetry } from './telemetry';
+import { applyAppUpdate, checkForUpdates } from './updater';
 import {
   AiProviderConfig,
   AiReasoningEffort,
@@ -30,7 +31,9 @@ import {
   BuildLogEntry,
   ProjectUserMeta,
   QuickNoteItem,
+  SopSkillInstallOptions,
   StageTodoItem,
+  UpdateCheckResult,
 } from './types';
 
 protocol.registerSchemesAsPrivileged([
@@ -274,7 +277,9 @@ app.whenReady().then(() => {
   ipcMain.handle('hub:connectProjectSop', (_e, projectPath: string, mode: 'new' | 'existing') =>
     connectProjectToSop(store, projectPath, mode)
   );
-  ipcMain.handle('hub:installSopSkill', () => installSopSkill(store));
+  ipcMain.handle('hub:installSopSkill', (_e, options?: SopSkillInstallOptions) =>
+    installSopSkill(store, options)
+  );
   ipcMain.handle('hub:downloadSopFonts', () =>
     downloadSopFonts(store, (progress) => {
       mainWindow?.webContents.send('sop:font-download-progress', progress);
@@ -301,6 +306,13 @@ app.whenReady().then(() => {
       return false;
     }
   });
+  ipcMain.handle('hub:getAppVersion', () => app.getVersion());
+  ipcMain.handle('hub:checkForUpdates', () => checkForUpdates());
+  ipcMain.handle('hub:applyAppUpdate', (_e, info: UpdateCheckResult) =>
+    applyAppUpdate(store, info, (progress) => {
+      mainWindow?.webContents.send('hub:update-progress', progress);
+    })
+  );
   ipcMain.handle('hub:getDataPath', () => store.getDataFilePath());
   ipcMain.handle('hub:exportBackup', async () => {
     if (!mainWindow) return null;

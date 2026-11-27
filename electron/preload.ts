@@ -17,12 +17,16 @@ import {
   SopConnectResult,
   SopFontDownloadProgress,
   SopLibraryData,
+  SopSkillInstallOptions,
   SopSkillInstallResult,
   StageTodoItem,
   StudioPulseData,
   TapTapFeedbackFetchResult,
   TapTapFeedbackProgress,
   TapTapFeedbackSnapshot,
+  UpdateApplyResult,
+  UpdateCheckResult,
+  UpdateDownloadProgress,
 } from './types';
 
 const api = {
@@ -74,7 +78,8 @@ const api = {
   openSopAsset: (relPath: string): Promise<boolean> => ipcRenderer.invoke('hub:openSopAsset', relPath),
   connectProjectSop: (projectPath: string, mode: 'new' | 'existing'): Promise<SopConnectResult> =>
     ipcRenderer.invoke('hub:connectProjectSop', projectPath, mode),
-  installSopSkill: (): Promise<SopSkillInstallResult> => ipcRenderer.invoke('hub:installSopSkill'),
+  installSopSkill: (options?: SopSkillInstallOptions): Promise<SopSkillInstallResult> =>
+    ipcRenderer.invoke('hub:installSopSkill', options),
   downloadSopFonts: (): Promise<{ ok: boolean; installed: number; total: number; error?: string }> =>
     ipcRenderer.invoke('hub:downloadSopFonts'),
   onSopFontProgress: (cb: (p: SopFontDownloadProgress) => void) => {
@@ -91,6 +96,15 @@ const api = {
   getLoginStartup: (): Promise<boolean> => ipcRenderer.invoke('hub:getLoginStartup'),
   setLoginStartup: (enabled: boolean): Promise<boolean> =>
     ipcRenderer.invoke('hub:setLoginStartup', enabled),
+  getAppVersion: (): Promise<string> => ipcRenderer.invoke('hub:getAppVersion'),
+  checkForUpdates: (): Promise<UpdateCheckResult> => ipcRenderer.invoke('hub:checkForUpdates'),
+  applyAppUpdate: (info: UpdateCheckResult): Promise<UpdateApplyResult> =>
+    ipcRenderer.invoke('hub:applyAppUpdate', info),
+  onUpdateProgress: (cb: (p: UpdateDownloadProgress) => void) => {
+    const listener = (_e: Electron.IpcRendererEvent, p: UpdateDownloadProgress) => cb(p);
+    ipcRenderer.on('hub:update-progress', listener);
+    return () => ipcRenderer.removeListener('hub:update-progress', listener);
+  },
   getDataPath: (): Promise<string> => ipcRenderer.invoke('hub:getDataPath'),
   exportBackup: (): Promise<string | null> => ipcRenderer.invoke('hub:exportBackup'),
   importBackup: (): Promise<HubPersistedState | null> => ipcRenderer.invoke('hub:importBackup'),

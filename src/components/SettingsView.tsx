@@ -32,11 +32,15 @@ import {
   GlassIntensityId,
   HubPersistedState,
   PreferredEditorId,
+  UpdateCheckResult,
 } from '../types';
 
 interface SettingsViewProps {
   hubState: HubPersistedState;
   scanning: boolean;
+  appVersion: string;
+  updateInfo: UpdateCheckResult | null;
+  checkingUpdate: boolean;
   onSetTheme: (theme: 'dark' | 'light') => Promise<void>;
   onUpdateSettings: (patch: Partial<AppSettings>) => Promise<void>;
   onAddRoot: () => Promise<void>;
@@ -44,6 +48,8 @@ interface SettingsViewProps {
   onRescanAll: () => Promise<void>;
   onRestoreRemoved: (projectPaths?: string[]) => Promise<void>;
   onStateReplaced: (next: HubPersistedState) => Promise<void>;
+  onCheckUpdate: () => Promise<void>;
+  onOpenUpdateModal: () => void;
 }
 
 const BACKDROP_PRESETS: {
@@ -168,6 +174,9 @@ const AppleSwitch: React.FC<{ checked: boolean; onChange: (v: boolean) => void }
 export const SettingsView: React.FC<SettingsViewProps> = ({
   hubState,
   scanning,
+  appVersion,
+  updateInfo,
+  checkingUpdate,
   onSetTheme,
   onUpdateSettings,
   onAddRoot,
@@ -175,6 +184,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onRescanAll,
   onRestoreRemoved,
   onStateReplaced,
+  onCheckUpdate,
+  onOpenUpdateModal,
 }) => {
   const [openAtLogin, setOpenAtLogin] = useState(false);
   const [dataPath, setDataPath] = useState('');
@@ -1061,16 +1072,70 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         )}
       </section>
 
-      {/* Section 4: System Startup & Local Data Backup */}
+      {/* Section 4: System Startup, Lossless Update & Local Data Backup */}
       <section className="glass-card rounded-[22px] p-5 space-y-4">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-xl bg-emerald-500/15 text-emerald-600 flex items-center justify-center">
-            <HardDrive className="w-4 h-4" />
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-xl bg-emerald-500/15 text-emerald-600 flex items-center justify-center">
+              <HardDrive className="w-4 h-4" />
+            </div>
+            <h2 className="text-[14px] font-semibold">系统启动、软件无损更新与数据备份</h2>
           </div>
-          <h2 className="text-[14px] font-semibold">系统启动与数据备份</h2>
+
+          <div className="flex items-center gap-2">
+            {updateInfo?.hasUpdate && updateInfo.latestVersion && (
+              <button
+                onClick={onOpenUpdateModal}
+                className="h-8 px-3 rounded-xl text-xs font-semibold border flex items-center gap-1.5 cursor-pointer"
+                style={{
+                  backgroundColor: 'var(--pill-ok-bg)',
+                  borderColor: 'var(--pill-ok-border)',
+                  color: 'var(--pill-ok-text)',
+                }}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>发现新版 v{updateInfo.latestVersion} · 立即无损更新</span>
+              </button>
+            )}
+            <button
+              disabled={checkingUpdate}
+              onClick={onCheckUpdate}
+              className="h-8 px-3 rounded-xl border text-xs font-medium flex items-center gap-1.5 cursor-pointer hover:border-blue-400 hover:text-blue-600 disabled:opacity-60"
+              style={{
+                backgroundColor: 'var(--bg-surface-strong)',
+                borderColor: 'var(--border-subtle)',
+              }}
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${checkingUpdate ? 'animate-spin text-blue-600' : ''}`} />
+              <span>{checkingUpdate ? '检测更新中…' : '检测新版本'}</span>
+            </button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Auto Check Update Toggle */}
+          <div
+            className="p-3.5 rounded-2xl border flex items-center justify-between gap-3"
+            style={{
+              backgroundColor: 'var(--bg-surface-strong)',
+              borderColor: 'var(--border-subtle)',
+            }}
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <Sparkles className="w-4 h-4 text-blue-600 shrink-0" />
+              <div className="min-w-0">
+                <div className="text-xs font-semibold">启动时自动检测更新</div>
+                <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                  仅读取 GitHub 公开版本号，升级前自动备份数据
+                </div>
+              </div>
+            </div>
+            <AppleSwitch
+              checked={settings.autoCheckUpdate !== false}
+              onChange={(v) => onUpdateSettings({ autoCheckUpdate: v })}
+            />
+          </div>
+
           {/* Startup Toggle */}
           <div
             className="p-3.5 rounded-2xl border flex items-center justify-between gap-3"
@@ -1154,7 +1219,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <span className="font-semibold" style={{ color: 'var(--text-secondary)' }}>
               GameHub 游戏总控台
             </span>
-            <span className="font-mono">v1.1.0</span>
+            <span className="font-mono">v{appVersion || '1.2.0'}</span>
           </span>
           <span>默认本地只读 · 联网仅按需触发 · 绝不上传或修改你的游戏源码</span>
         </div>

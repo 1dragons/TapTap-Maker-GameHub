@@ -1,0 +1,4 @@
+interface:
+  display_name: "小游戏新版本运营"
+  short_description: "按运营后台字段生成小游戏版本文案、更新重点和两张符合游戏画风的宣传图"
+  default_prompt: "使用 $mini-game-version-ops，根据我的游戏素材和本次更新，生成新版本介绍页必填资料、有依据的可选内容及两张宣传图。"

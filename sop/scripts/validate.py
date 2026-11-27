@@ -56,7 +56,7 @@ def run() -> dict:
         new=base/'new';new.mkdir()
         result=connect(new,ROOT,'new')
         config=json.loads((new/'.sop/project.json').read_text(encoding='utf-8'))
-        check('隔离新项目接入',result['created'] and config['mode']=='new' and config['sop_version']=='1.0.0','生成入口、版本、进度和设计验收记录；无 Maker 调用')
+        check('隔离新项目接入',result['created'] and config['mode']=='new' and config['sop_version']=='2.0.0','生成入口、v2.0版本、进度和设计验收记录；无 Maker 调用')
         existing=base/'existing';existing.mkdir()
         original=b'\xef\xbb\xbf# Existing rules\r\nKeep the player save.\r\n'
         (existing/'AGENTS.md').write_bytes(original)
@@ -83,7 +83,7 @@ def run() -> dict:
     result=build()
     for file in ('index.html','style.css','app.js','catalog.js','fonts.css','vendor/mermaid.min.js','vendor/mermaid-LICENSE'):
         check('本地页面依赖 '+file,(ROOT/'portal'/file).is_file(),file)
-    check('文档与流程索引',result['documents']>=28 and result['stages']==11,result)
+    check('文档与流程索引',result['documents']>=29 and result['stages']==11,result)
     sample=json.loads((ROOT/'samples/breakfast/generation-plan.json').read_text(encoding='utf-8'))
     check('生成待办保留用户决定',sample['status']=='deferred_by_user','无绑定拒绝后用户选择延后，没有自动重试或构建上传')
     report={'suite':'targeted SOP consistency and isolated connection checks','checks':checks,

@@ -28,6 +28,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   gitCommitLimit: 100,
   gitHideSyncByDefault: false,
   autoArchiveCopies: true,
+  autoCheckUpdate: true,
   sopPath: '',
   ai: { ...DEFAULT_AI_CONFIG },
 };

@@ -139,12 +139,12 @@ https://github.com/user-attachments/assets/92b6a2b6-464e-4058-808d-fbee3fcdd648
 
 ### 4. 工作室脉搏 & 内置小游戏开发 SOP
 - **工作室脉搏（20 周全景热力图）**：聚合所有活跃游戏的开发提交，呈现 GitHub 风格绿格子热力图、连续开发天数、单日峰值纪录、跨游戏动态流与精力分布。
-- **内置 TapTap Maker 小游戏开发 SOP 中心（[`sop/`](./sop)）**：开箱内置 30+ 篇完整流程、开发规范、标准模板与接入脚本，支持软件内分类阅读、全文搜索与「一键复制给 AI」，也可在系统设置中指向你自己的本地 SOP 目录实现实时同步。
+- **内置 TapTap Maker 小游戏开发 SOP v2.0 & 四件套 AI 技能（[`sop/`](./sop)）**：开箱内置 34 篇 v2.0 实战流程与工程避坑规范（含 UrhoX/Lua 避坑、存档直升与风控、3D 场景动线、OPT 商业化与全比例安全区、三排矢量全屏流程图），并打包完整 **4 套 AI 技能**（`taptap-maker-sop`、`taptap-maker-qa` 含静态审计与 HTML 验收看板脚本、`mini-game-version-ops`、`game-diagnosis` 含 GamePropel HTML 诊断看板脚本），支持在软件内**一键安装到 Antigravity / Codex / Claude Code / Cursor**。
 
 ### 5. 完整的苹果风系统设置
 - **6 款苹果柔彩毛玻璃氛围背景**（冰川极光 / 樱花暖晨 / 薄荷森林 / 日落琥珀 / 紫罗兰梦 / 极简纯雪）+ **三档毛玻璃通透度** + 浅色/深色一键切换；
 - 默认代码编辑器偏好（自动识别 / Cursor / VS Code / Trae）、Git 加载深度与默认过滤同步；
-- 原生 Windows 开机自启开关 & 一键 JSON 配置/随手记导入导出备份。
+- 原生 Windows 开机自启开关、**软件内一键检测更新与无损原地升级**（自动区分安装版与绿色便携版，升级前自动备份 `hub-state.json` 并通过 SHA-256 校验，100% 保留配置与数据）及一键 JSON 备份导入导出。
 
 ---
 
