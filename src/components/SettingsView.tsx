@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import {
+  Bot,
   Check,
   Code2,
   Download,
+  Eye,
+  EyeOff,
   FolderOpen,
   FolderPlus,
   Gamepad2,
@@ -15,11 +18,15 @@ import {
   Power,
   RefreshCw,
   RotateCcw,
+  ShieldCheck,
+  Sparkles,
   Sun,
   Trash2,
   Upload,
 } from 'lucide-react';
 import {
+  AiProviderConfig,
+  AiReasoningEffort,
   AppSettings,
   GlassBackdropId,
   GlassIntensityId,
@@ -76,6 +83,67 @@ const BACKDROP_PRESETS: {
   },
 ];
 
+const AI_PROVIDER_PRESETS: {
+  id: string;
+  label: string;
+  baseUrl: string;
+  model: string;
+  models: string[];
+  hint: string;
+}[] = [
+  {
+    id: 'deepseek',
+    label: 'DeepSeek',
+    baseUrl: 'https://api.deepseek.com',
+    model: 'deepseek-flash',
+    models: ['deepseek-flash', 'deepseek-v4-pro', 'deepseek-chat', 'deepseek-reasoner'],
+    hint: 'DeepSeek 官方 OpenAI 兼容端点，支持 deepseek-flash / deepseek-v4-pro',
+  },
+  {
+    id: 'qwen',
+    label: '通义千问 Qwen',
+    baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+    model: 'qwen-plus',
+    models: ['qwen-plus', 'qwen-turbo', 'qwen-max'],
+    hint: '阿里云百炼 OpenAI 兼容接口',
+  },
+  {
+    id: 'minimax',
+    label: 'MiniMax',
+    baseUrl: 'https://api.minimaxi.com/v1',
+    model: 'MiniMax-M2.5',
+    models: ['MiniMax-M2.5', 'MiniMax-M2.7', 'MiniMax-Text-01'],
+    hint: 'MiniMax 官方 OpenAI 兼容端点',
+  },
+  {
+    id: 'zhipu',
+    label: '智谱 GLM',
+    baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+    model: 'glm-4-flash',
+    models: ['glm-4-flash', 'glm-4.5', 'glm-4-plus'],
+    hint: '智谱开放平台轻量快速模型',
+  },
+  {
+    id: 'ollama',
+    label: '本地 Ollama',
+    baseUrl: 'http://localhost:11434/v1',
+    model: 'qwen2.5:7b',
+    models: ['qwen2.5:7b', 'qwen3:8b', 'deepseek-r1:8b'],
+    hint: '100% 本地离线推理，API Key 可留空',
+  },
+];
+
+const REASONING_EFFORT_OPTIONS: {
+  id: AiReasoningEffort;
+  label: string;
+  desc: string;
+}[] = [
+  { id: 'none', label: '极速（关思考）', desc: '关闭深度思考，2~4秒极速出结论' },
+  { id: 'low', label: '轻度思考（推荐）', desc: '兼顾速度与归类准确度，约 4~8秒' },
+  { id: 'high', label: '深度思考', desc: 'DeepSeek 默认档位，分析更深但较慢' },
+  { id: 'max', label: '极致思考', desc: '最大推理预算，适合几百条复杂舆情' },
+];
+
 const AppleSwitch: React.FC<{ checked: boolean; onChange: (v: boolean) => void }> = ({
   checked,
   onChange,
@@ -114,6 +182,37 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [toast, setToast] = useState<string | null>(null);
 
   const settings = hubState.settings;
+  const [aiForm, setAiForm] = useState<AiProviderConfig>({
+    baseUrl: settings.ai?.baseUrl || '',
+    apiKey: settings.ai?.apiKey || '',
+    model: settings.ai?.model || '',
+    reasoningEffort: settings.ai?.reasoningEffort || 'low',
+  });
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [testingAi, setTestingAi] = useState(false);
+  const [aiTestResult, setAiTestResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [loadingModels, setLoadingModels] = useState(false);
+  const [fetchedModels, setFetchedModels] = useState<string[]>([]);
+
+  const matchedPreset = AI_PROVIDER_PRESETS.find((p) => {
+    const cur = aiForm.baseUrl.trim().replace(/\/+$/, '');
+    return cur === p.baseUrl || cur === `${p.baseUrl}/v1`;
+  });
+  const modelSuggestions = fetchedModels.length > 0 ? fetchedModels : matchedPreset?.models || [];
+
+  useEffect(() => {
+    setAiForm({
+      baseUrl: settings.ai?.baseUrl || '',
+      apiKey: settings.ai?.apiKey || '',
+      model: settings.ai?.model || '',
+      reasoningEffort: settings.ai?.reasoningEffort || 'low',
+    });
+  }, [
+    settings.ai?.baseUrl,
+    settings.ai?.apiKey,
+    settings.ai?.model,
+    settings.ai?.reasoningEffort,
+  ]);
   const removedIds = Object.entries(hubState.projects || {})
     .filter(([, meta]) => meta?.removed)
     .map(([id, meta]) => ({
@@ -155,6 +254,66 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     if (restored) {
       await onStateReplaced(restored);
       showToast('备份已恢复并重新加载');
+    }
+  };
+
+  const handleSaveAiConfig = async () => {
+    await onUpdateSettings({
+      ai: {
+        baseUrl: aiForm.baseUrl.trim(),
+        apiKey: aiForm.apiKey.trim(),
+        model: aiForm.model.trim(),
+        reasoningEffort: aiForm.reasoningEffort || 'low',
+      },
+    });
+    setAiTestResult(null);
+    showToast('AI 总结接口配置已保存至本地');
+  };
+
+  const handleTestAi = async () => {
+    setTestingAi(true);
+    setAiTestResult(null);
+    try {
+      const res = await window.gameHub.testAiConnection(aiForm);
+      if (res.ok) {
+        setAiTestResult({
+          ok: true,
+          msg: `连接成功！可用模型：${res.model || aiForm.model}`,
+        });
+      } else {
+        setAiTestResult({
+          ok: false,
+          msg: res.error || '连接失败',
+        });
+      }
+    } catch (err: any) {
+      setAiTestResult({ ok: false, msg: err?.message || '连接异常' });
+    } finally {
+      setTestingAi(false);
+    }
+  };
+
+  const handleFetchModels = async () => {
+    setLoadingModels(true);
+    setAiTestResult(null);
+    try {
+      const res = await window.gameHub.listAiModels(aiForm);
+      if (res.ok && res.models && res.models.length > 0) {
+        setFetchedModels(res.models);
+        if (!aiForm.model.trim() || !res.models.includes(aiForm.model.trim())) {
+          setAiForm((prev) => ({ ...prev, model: res.models![0] }));
+        }
+        setAiTestResult({
+          ok: true,
+          msg: `已获取 ${res.models.length} 个实时可用模型，点击下方标签可直接切换`,
+        });
+      } else {
+        setAiTestResult({ ok: false, msg: res.error || '获取模型列表失败' });
+      }
+    } catch (err: any) {
+      setAiTestResult({ ok: false, msg: err?.message || '获取模型列表异常' });
+    } finally {
+      setLoadingModels(false);
     }
   };
 
@@ -637,6 +796,271 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </section>
       </div>
 
+      {/* Section 3.5: Optional BYOK AI Feedback Summary */}
+      <section className="glass-card rounded-[22px] p-5 space-y-4">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-xl bg-violet-500/15 text-violet-600 flex items-center justify-center">
+              <Bot className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-[14px] font-semibold">
+                AI 玩家反馈总结接口（可选 · 自带 Key / 本地 Ollama）
+              </h2>
+              <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                不配置也能免费拉取评价、本地自动分类并「一键复制给 AI」；配置后可在项目页点击「AI 一键总结问题」
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {AI_PROVIDER_PRESETS.map((preset) => {
+              const curUrl = aiForm.baseUrl.trim().replace(/\/+$/, '');
+              const active = curUrl === preset.baseUrl || curUrl === `${preset.baseUrl}/v1`;
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  title={preset.hint}
+                  onClick={() => {
+                    setAiForm((prev) => ({
+                      ...prev,
+                      baseUrl: preset.baseUrl,
+                      model: preset.model,
+                      apiKey: preset.id === 'ollama' ? '' : prev.apiKey,
+                    }));
+                    setFetchedModels([]);
+                    setAiTestResult(null);
+                  }}
+                  className="h-7 px-2.5 rounded-lg text-[11px] font-medium border cursor-pointer transition-all hover:border-violet-400"
+                  style={{
+                    backgroundColor: active ? 'var(--accent-soft)' : 'var(--bg-surface-strong)',
+                    borderColor: active ? 'var(--accent-primary)' : 'var(--border-subtle)',
+                    color: active ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                  }}
+                >
+                  {preset.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="space-y-1">
+            <label className="text-[11px] font-semibold block">API Base URL（OpenAI 兼容）</label>
+            <input
+              value={aiForm.baseUrl}
+              onChange={(e) => {
+                setAiForm((prev) => ({ ...prev, baseUrl: e.target.value }));
+                setFetchedModels([]);
+              }}
+              placeholder="例如 https://api.deepseek.com"
+              className="w-full h-9 px-3 rounded-xl border text-xs font-mono outline-none focus:border-blue-500"
+              style={{
+                backgroundColor: 'var(--bg-surface-strong)',
+                borderColor: 'var(--border-subtle)',
+              }}
+            />
+          </div>
+
+          <div className="space-y-1">
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-[11px] font-semibold">模型名称（Model）</label>
+              <button
+                type="button"
+                onClick={handleFetchModels}
+                disabled={loadingModels}
+                title="向当前接口 /models 拉取真实可用模型列表"
+                className="text-[10.5px] font-medium text-violet-600 hover:underline flex items-center gap-1 cursor-pointer disabled:opacity-50"
+              >
+                <RefreshCw className={`w-2.5 h-2.5 ${loadingModels ? 'animate-spin' : ''}`} />
+                <span>{loadingModels ? '拉取中…' : '拉取实时模型'}</span>
+              </button>
+            </div>
+            <input
+              value={aiForm.model}
+              onChange={(e) => setAiForm((prev) => ({ ...prev, model: e.target.value }))}
+              placeholder="例如 deepseek-flash / deepseek-v4-pro"
+              className="w-full h-9 px-3 rounded-xl border text-xs font-mono outline-none focus:border-blue-500"
+              style={{
+                backgroundColor: 'var(--bg-surface-strong)',
+                borderColor: 'var(--border-subtle)',
+              }}
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[11px] font-semibold block">
+              API Key（本地 Ollama 可留空）
+            </label>
+            <div className="relative">
+              <input
+                type={showApiKey ? 'text' : 'password'}
+                value={aiForm.apiKey}
+                onChange={(e) => setAiForm((prev) => ({ ...prev, apiKey: e.target.value }))}
+                placeholder="sk-..."
+                className="w-full h-9 pl-3 pr-9 rounded-xl border text-xs font-mono outline-none focus:border-blue-500"
+                style={{
+                  backgroundColor: 'var(--bg-surface-strong)',
+                  borderColor: 'var(--border-subtle)',
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowApiKey((v) => !v)}
+                title={showApiKey ? '隐藏 Key' : '显示 Key'}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md opacity-65 hover:opacity-100 cursor-pointer"
+              >
+                {showApiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Clickable Model Quick-Picker Pills */}
+        {modelSuggestions.length > 0 && (
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[10.5px] font-medium mr-0.5" style={{ color: 'var(--text-muted)' }}>
+              {fetchedModels.length > 0 ? '接口实时模型：' : '快捷模型：'}
+            </span>
+            {modelSuggestions.slice(0, 12).map((m) => {
+              const selected = aiForm.model.trim() === m;
+              return (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setAiForm((prev) => ({ ...prev, model: m }))}
+                  className="px-2 py-0.5 rounded-lg text-[11px] font-mono border cursor-pointer transition-all hover:border-violet-400"
+                  style={{
+                    backgroundColor: selected ? 'var(--accent-soft)' : 'var(--bg-elevated)',
+                    borderColor: selected ? 'var(--accent-primary)' : 'var(--border-subtle)',
+                    color: selected ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                  }}
+                >
+                  {m}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Reasoning Effort Selector */}
+        <div
+          className="pt-3 border-t flex items-center justify-between gap-3 flex-wrap"
+          style={{ borderColor: 'var(--border-subtle)' }}
+        >
+          <div>
+            <div className="text-xs font-semibold">AI 思考强度（速度 vs 深度）</div>
+            <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+              {
+                REASONING_EFFORT_OPTIONS.find(
+                  (o) => o.id === (aiForm.reasoningEffort || 'low')
+                )?.desc
+              }
+            </div>
+          </div>
+
+          <div
+            className="inline-flex p-1 rounded-xl border flex-wrap"
+            style={{
+              backgroundColor: 'var(--bg-elevated)',
+              borderColor: 'var(--border-subtle)',
+            }}
+          >
+            {REASONING_EFFORT_OPTIONS.map((opt) => {
+              const active = (aiForm.reasoningEffort || 'low') === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  title={opt.desc}
+                  onClick={() => setAiForm((prev) => ({ ...prev, reasoningEffort: opt.id }))}
+                  className="h-7 px-2.5 rounded-lg text-[11px] font-semibold cursor-pointer transition-all"
+                  style={{
+                    backgroundColor: active ? 'var(--bg-surface-strong)' : 'transparent',
+                    color: active ? 'var(--accent-primary)' : 'var(--text-muted)',
+                    boxShadow: active ? 'var(--card-shadow)' : 'none',
+                  }}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+            <span>Key 仅保存在本地 hub-state.json，仅在你主动点击「AI 一键总结」时请求指定接口</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {(aiForm.baseUrl || aiForm.apiKey || aiForm.model) && (
+              <button
+                type="button"
+                onClick={async () => {
+                  const empty: AiProviderConfig = {
+                    baseUrl: '',
+                    apiKey: '',
+                    model: '',
+                    reasoningEffort: 'low',
+                  };
+                  setAiForm(empty);
+                  setFetchedModels([]);
+                  setAiTestResult(null);
+                  await onUpdateSettings({ ai: empty });
+                  showToast('已清空 AI 接口配置');
+                }}
+                className="h-8 px-2.5 rounded-xl border text-xs font-medium cursor-pointer hover:text-rose-600"
+                style={{
+                  backgroundColor: 'var(--bg-elevated)',
+                  borderColor: 'var(--border-subtle)',
+                  color: 'var(--text-muted)',
+                }}
+              >
+                清空
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={handleTestAi}
+              disabled={testingAi}
+              className="h-8 px-3 rounded-xl border text-xs font-medium flex items-center gap-1.5 cursor-pointer hover:border-violet-400 hover:text-violet-600 disabled:opacity-60"
+              style={{
+                backgroundColor: 'var(--bg-surface-strong)',
+                borderColor: 'var(--border-subtle)',
+              }}
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${testingAi ? 'animate-spin' : ''}`} />
+              <span>{testingAi ? '测试中…' : '测试连接'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveAiConfig}
+              className="h-8 px-3.5 rounded-xl bg-violet-600 text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer hover:opacity-92 shadow-xs"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>保存 AI 配置</span>
+            </button>
+          </div>
+        </div>
+
+        {aiTestResult && (
+          <div
+            className="px-3.5 py-2 rounded-xl border text-xs font-medium"
+            style={{
+              backgroundColor: aiTestResult.ok ? 'var(--pill-ok-bg)' : 'var(--pill-err-bg)',
+              borderColor: aiTestResult.ok ? 'var(--pill-ok-border)' : 'var(--pill-err-border)',
+              color: aiTestResult.ok ? 'var(--pill-ok-text)' : 'var(--pill-err-text)',
+            }}
+          >
+            {aiTestResult.msg}
+          </div>
+        )}
+      </section>
+
       {/* Section 4: System Startup & Local Data Backup */}
       <section className="glass-card rounded-[22px] p-5 space-y-4">
         <div className="flex items-center gap-2.5">
@@ -730,9 +1154,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <span className="font-semibold" style={{ color: 'var(--text-secondary)' }}>
               GameHub 游戏总控台
             </span>
-            <span className="font-mono">v1.0.0</span>
+            <span className="font-mono">v1.1.0</span>
           </span>
-          <span>纯本地离线运行 · 绝不上传或修改你的游戏源码</span>
+          <span>默认本地只读 · 联网仅按需触发 · 绝不上传或修改你的游戏源码</span>
         </div>
       </section>
     </div>

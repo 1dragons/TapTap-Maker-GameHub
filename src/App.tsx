@@ -35,6 +35,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   gitHideSyncByDefault: false,
   autoArchiveCopies: true,
   sopPath: '',
+  ai: { baseUrl: '', apiKey: '', model: '', reasoningEffort: 'low' },
 };
 
 export default function App() {
@@ -363,6 +364,12 @@ export default function App() {
               project={selectedProject}
               settings={hubState.settings}
               onEdit={() => setEditingProject(selectedProject)}
+              onUpdateSettings={handleUpdateSettings}
+              onOpenSettings={() => {
+                setSelectedId(null);
+                setStageFilter(null);
+                setQuickFilter('settings');
+              }}
               onRemoveFromHub={() => handleRemoveProjectsFromHub([selectedProject.path])}
               onRefreshProject={() => refreshSingle(selectedProject)}
               onUpdateMeta={(patch) => handleUpdateProjectMeta(selectedProject, patch)}

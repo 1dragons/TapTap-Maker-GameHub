@@ -16,6 +16,7 @@ import {
   Monitor,
   Pencil,
   Pin,
+  Radar,
   RefreshCw,
   Smartphone,
   Terminal,
@@ -37,6 +38,7 @@ import { mediaUrl } from '../utils';
 import { BuildUploadCard } from './BuildUploadCard';
 import { GitTreeGraph } from './GitTreeGraph';
 import { LifecycleFlowchart } from './LifecycleFlowchart';
+import { PlayerFeedbackCard } from './PlayerFeedbackCard';
 import { ProjectTelemetryStrip } from './ProjectTelemetryStrip';
 import { ReleaseNotesModal } from './ReleaseNotesModal';
 import { StudioPadCard } from './StudioPadCard';
@@ -45,6 +47,8 @@ interface ProjectDetailProps {
   project: ProjectCardData;
   settings: AppSettings;
   onEdit: () => void;
+  onUpdateSettings: (patch: Partial<AppSettings>) => Promise<void>;
+  onOpenSettings: () => void;
   onRemoveFromHub: () => Promise<void>;
   onRefreshProject: () => Promise<void>;
   onUpdateMeta: (patch: {
@@ -84,6 +88,8 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   project,
   settings,
   onEdit,
+  onUpdateSettings,
+  onOpenSettings,
   onRemoveFromHub,
   onRefreshProject,
   onUpdateMeta,
@@ -502,6 +508,24 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                     <ExternalLink className="w-2.5 h-2.5 opacity-70" />
                   </button>
                 ))}
+                {project.taptap.appId && (
+                  <button
+                    onClick={() => {
+                      document
+                        .getElementById('player-feedback-radar')
+                        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer hover:opacity-90"
+                    style={{
+                      backgroundColor: 'var(--pill-ok-bg)',
+                      borderColor: 'var(--pill-ok-border)',
+                      color: 'var(--pill-ok-text)',
+                    }}
+                  >
+                    <Radar className="w-3 h-3" />
+                    <span>玩家评价 & 论坛雷达</span>
+                  </button>
+                )}
                 <button
                   onClick={onEdit}
                   className="px-2 py-1 rounded-lg text-[11px] border border-dashed cursor-pointer hover:border-blue-400 hover:text-blue-600"
@@ -554,6 +578,16 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
           />
         </div>
       </div>
+
+      {/* Module 4: TapTap Live Player Reviews & Forum Issue Radar */}
+      <PlayerFeedbackCard
+        project={project}
+        graph={graph}
+        settings={settings}
+        onUpdateSettings={onUpdateSettings}
+        onUpdateTodos={onUpdateTodos}
+        onOpenSettings={onOpenSettings}
+      />
 
       {showReleaseModal && (
         <ReleaseNotesModal

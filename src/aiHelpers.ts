@@ -1,5 +1,5 @@
 import { LIFECYCLE_STAGES, STAGE_INDEX_MAP } from './constants';
-import { GitGraphData, ProjectCardData } from './types';
+import { GitGraphData, ProjectCardData, TapTapFeedbackSnapshot } from './types';
 
 export function getCountdownInfo(
   targetDate?: string
@@ -160,5 +160,100 @@ export function generateReleaseNotesDraft(
   }
 
   lines.push('感谢各位老板/玩家的反馈与支持，游玩中遇到任何问题欢迎随时在论坛留言！');
+  return lines.join('\n');
+}
+
+export function buildFeedbackAiPrompt(
+  project: ProjectCardData,
+  snapshot: TapTapFeedbackSnapshot,
+  graph: GitGraphData | null,
+  onlyNew = false
+): string {
+  const newRevSet = new Set(snapshot.lastSyncNewReviewIds || []);
+  const newForumSet = new Set(snapshot.lastSyncNewForumIds || []);
+  const sourceReviews = onlyNew
+    ? snapshot.reviews.filter((r) => newRevSet.has(r.id))
+    : snapshot.reviews;
+  const sourceForumPosts = onlyNew
+    ? snapshot.forumPosts.filter((p) => newForumSet.has(p.id))
+    : snapshot.forumPosts;
+
+  const lines: string[] = [];
+  lines.push(
+    onlyNew
+      ? `请帮我分析游戏《${project.name}》本次增量拉取到的最新 TapTap 玩家评价与论坛问题，按 P0/P1/P2 整理出可执行的修复与优化清单。`
+      : `请帮我分析游戏《${project.name}》的 TapTap 玩家评价与论坛问题，按 P0/P1/P2 整理出可执行的修复与优化清单。`
+  );
+  lines.push('');
+  lines.push('## 项目现状');
+  lines.push(`- 本地目录：\`${project.path}\``);
+  lines.push(
+    `- 当前版本：${project.displayVersion || '未知'} ｜ TapTap AppID：${snapshot.appId} ｜ 商店评分：${snapshot.rating.score} 分（评价约 ${snapshot.rating.totalReviews} 条）`
+  );
+  const v = snapshot.rating.voteDistribution;
+  lines.push(`- 星级分布：5★(${v['5']}) / 4★(${v['4']}) / 3★(${v['3']}) / 2★(${v['2']}) / 1★(${v['1']})`);
+
+  if (snapshot.categoryStats.length > 0) {
+    const statLine = snapshot.categoryStats
+      .map((s) => `${s.label} ${s.count}条${s.lowStarCount > 0 ? `(含低星${s.lowStarCount})` : ''}`)
+      .join(' ｜ ');
+    lines.push(`- 全量本地关键词分布：${statLine}`);
+  }
+
+  const recentWork = (graph?.commits || [])
+    .filter((c) => !/^\[\d+\]\s*sync at|commit cloud/i.test(c.fullSubject))
+    .slice(0, 5);
+  if (recentWork.length > 0) {
+    lines.push('- 最近提交记录：');
+    for (const c of recentWork) {
+      lines.push(`  - \`${c.shortHash}\` ${c.fullSubject}`);
+    }
+  }
+
+  const prioritizedReviews = [...sourceReviews].sort((a, b) => {
+    const aLow = a.score <= 3 ? 0 : 1;
+    const bLow = b.score <= 3 ? 0 : 1;
+    if (aLow !== bLow) return aLow - bLow;
+    return b.createdAt.localeCompare(a.createdAt);
+  });
+
+  const revLimit = onlyNew ? 50 : 35;
+  const forumLimit = onlyNew ? 35 : 25;
+
+  if (prioritizedReviews.length > 0) {
+    lines.push('');
+    lines.push(
+      `## ${onlyNew ? '本次新增' : 'TapTap'} 玩家评价（共 ${sourceReviews.length} 条，低星优先展示前 ${Math.min(revLimit, prioritizedReviews.length)} 条）`
+    );
+    for (const r of prioritizedReviews.slice(0, revLimit)) {
+      const meta = [
+        `${r.score}★`,
+        r.device ? `机型:${r.device}` : '',
+        r.playedMinutes
+          ? r.playedMinutes >= 60
+            ? `游玩${(r.playedMinutes / 60).toFixed(1)}h`
+            : `游玩${r.playedMinutes}分`
+          : '',
+        r.createdAt.slice(0, 10),
+      ]
+        .filter(Boolean)
+        .join(' · ');
+      lines.push(`- [${meta}] ${r.text.replace(/\s+/g, ' ').slice(0, 220)}`);
+    }
+  }
+
+  if (sourceForumPosts.length > 0) {
+    lines.push('');
+    lines.push(
+      `## ${onlyNew ? '本次新增' : 'TapTap'} 论坛帖子（共 ${sourceForumPosts.length} 条，展示前 ${Math.min(forumLimit, sourceForumPosts.length)} 条）`
+    );
+    for (const p of sourceForumPosts.slice(0, forumLimit)) {
+      const body = p.text !== p.title ? `：${p.text.replace(/\s+/g, ' ').slice(0, 160)}` : '';
+      lines.push(`- [${p.createdAt.slice(0, 10)} · ${p.comments}回复] ${p.title}${body}`);
+    }
+  }
+
+  lines.push('');
+  lines.push('请结合当前代码库，输出：1) P0 阻断级 Bug 排查定位；2) P1 体验/广告/数值优化方案；3) 下一个版本的优先修改顺序。');
   return lines.join('\n');
 }

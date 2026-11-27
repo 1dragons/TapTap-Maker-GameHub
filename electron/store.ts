@@ -1,7 +1,24 @@
 import fs from 'fs';
 import path from 'path';
 import { app } from 'electron';
-import { AppSettings, BuildLogEntry, HubPersistedState, ProjectUserMeta, QuickNoteItem, StageTodoItem } from './types';
+import {
+  AiFeedbackSummary,
+  AiProviderConfig,
+  AppSettings,
+  BuildLogEntry,
+  HubPersistedState,
+  ProjectUserMeta,
+  QuickNoteItem,
+  StageTodoItem,
+  TapTapFeedbackSnapshot,
+} from './types';
+
+export const DEFAULT_AI_CONFIG: AiProviderConfig = {
+  baseUrl: '',
+  apiKey: '',
+  model: '',
+  reasoningEffort: 'low',
+};
 
 export const DEFAULT_SETTINGS: AppSettings = {
   backdrop: 'aurora',
@@ -12,6 +29,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   gitHideSyncByDefault: false,
   autoArchiveCopies: true,
   sopPath: '',
+  ai: { ...DEFAULT_AI_CONFIG },
 };
 
 function detectDefaultRoots(): string[] {
@@ -59,6 +77,12 @@ export class HubStore {
           settings: {
             ...DEFAULT_SETTINGS,
             ...(parsed.settings && typeof parsed.settings === 'object' ? parsed.settings : {}),
+            ai: {
+              ...DEFAULT_AI_CONFIG,
+              ...(parsed.settings?.ai && typeof parsed.settings.ai === 'object'
+                ? parsed.settings.ai
+                : {}),
+            },
           },
           globalNotes: Array.isArray(parsed.globalNotes) ? parsed.globalNotes : [],
           projects: parsed.projects && typeof parsed.projects === 'object' ? parsed.projects : {},
@@ -70,7 +94,7 @@ export class HubStore {
     return {
       roots: detectDefaultRoots(),
       theme: 'light',
-      settings: { ...DEFAULT_SETTINGS },
+      settings: { ...DEFAULT_SETTINGS, ai: { ...DEFAULT_AI_CONFIG } },
       globalNotes: [],
       projects: {},
     };
@@ -106,6 +130,16 @@ export class HubStore {
     this.state.settings = {
       ...this.state.settings,
       ...patch,
+      ai: patch.ai
+        ? {
+            ...DEFAULT_AI_CONFIG,
+            ...(this.state.settings.ai || {}),
+            ...patch.ai,
+          }
+        : {
+            ...DEFAULT_AI_CONFIG,
+            ...(this.state.settings.ai || {}),
+          },
     };
     this.save();
     return this.state;
@@ -119,6 +153,12 @@ export class HubStore {
       settings: {
         ...DEFAULT_SETTINGS,
         ...(parsed.settings && typeof parsed.settings === 'object' ? parsed.settings : {}),
+        ai: {
+          ...DEFAULT_AI_CONFIG,
+          ...(parsed.settings?.ai && typeof parsed.settings.ai === 'object'
+            ? parsed.settings.ai
+            : {}),
+        },
       },
       globalNotes: Array.isArray(parsed.globalNotes) ? parsed.globalNotes : [],
       projects: parsed.projects && typeof parsed.projects === 'object' ? parsed.projects : {},
@@ -240,5 +280,32 @@ export class HubStore {
     const current = this.getProjectMeta(projectPath);
     const buildLogs = current.buildLogs.filter((l) => l.id !== logId);
     return this.updateProjectMeta(projectPath, { buildLogs });
+  }
+
+  getTapTapFeedback(projectPath: string): TapTapFeedbackSnapshot | null {
+    const current = this.getProjectMeta(projectPath);
+    return current.taptapFeedback || null;
+  }
+
+  saveTapTapFeedback(
+    projectPath: string,
+    snapshot: TapTapFeedbackSnapshot
+  ): TapTapFeedbackSnapshot {
+    this.updateProjectMeta(projectPath, { taptapFeedback: snapshot });
+    return snapshot;
+  }
+
+  saveTapTapAiSummary(
+    projectPath: string,
+    summary: AiFeedbackSummary
+  ): TapTapFeedbackSnapshot | null {
+    const current = this.getProjectMeta(projectPath);
+    if (!current.taptapFeedback) return null;
+    const next: TapTapFeedbackSnapshot = {
+      ...current.taptapFeedback,
+      aiSummary: summary,
+    };
+    this.updateProjectMeta(projectPath, { taptapFeedback: next });
+    return next;
   }
 }

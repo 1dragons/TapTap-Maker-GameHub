@@ -16,8 +16,22 @@ import {
 } from './sopEngine';
 import { HubStore } from './store';
 import { getStudioPulse } from './studioPulse';
+import {
+  fetchTapTapFeedback,
+  listAiModels,
+  summarizeFeedbackWithAi,
+  testAiConnection,
+} from './taptapFeedback';
 import { getProjectTelemetry } from './telemetry';
-import { AppSettings, BuildLogEntry, ProjectUserMeta, QuickNoteItem, StageTodoItem } from './types';
+import {
+  AiProviderConfig,
+  AiReasoningEffort,
+  AppSettings,
+  BuildLogEntry,
+  ProjectUserMeta,
+  QuickNoteItem,
+  StageTodoItem,
+} from './types';
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -182,6 +196,67 @@ app.whenReady().then(() => {
     getProjectTelemetry(projectPath)
   );
   ipcMain.handle('hub:getStudioPulse', () => getStudioPulse(store));
+  ipcMain.handle('hub:getCachedTapTapFeedback', (_e, projectPath: string) =>
+    store.getTapTapFeedback(projectPath)
+  );
+  ipcMain.handle(
+    'hub:fetchTapTapFeedback',
+    async (
+      _e,
+      projectPath: string,
+      appId: string | number,
+      options?: { forceFull?: boolean }
+    ) => {
+      const existing = store.getTapTapFeedback(projectPath);
+      const res = await fetchTapTapFeedback(appId, {
+        projectPath,
+        existing,
+        forceFull: Boolean(options?.forceFull),
+        onProgress: (progress) => {
+          mainWindow?.webContents.send('taptap:feedback-progress', progress);
+        },
+      });
+      if (res.ok && res.data) {
+        const saved = store.saveTapTapFeedback(projectPath, res.data);
+        return { ok: true, data: saved };
+      }
+      return res;
+    }
+  );
+  ipcMain.handle(
+    'hub:summarizeTapTapFeedback',
+    async (
+      _e,
+      projectPath: string,
+      projectName: string,
+      version?: string,
+      scope?: 'all' | 'new',
+      reasoningEffort?: AiReasoningEffort
+    ) => {
+      const cached = store.getTapTapFeedback(projectPath);
+      if (!cached) {
+        return { ok: false, error: '请先拉取该游戏的玩家评价与论坛数据' };
+      }
+      const res = await summarizeFeedbackWithAi(
+        cached,
+        projectName,
+        version,
+        store.getState().settings.ai,
+        scope || 'all',
+        reasoningEffort
+      );
+      if (res.ok && res.summary) {
+        store.saveTapTapAiSummary(projectPath, res.summary);
+      }
+      return res;
+    }
+  );
+  ipcMain.handle('hub:testAiConnection', (_e, config: AiProviderConfig) =>
+    testAiConnection(config)
+  );
+  ipcMain.handle('hub:listAiModels', (_e, config: AiProviderConfig) =>
+    listAiModels(config)
+  );
   ipcMain.handle('hub:getSopLibrary', () => getSopLibrary(store));
   ipcMain.handle('hub:readSopDoc', (_e, absPath: string) => readSopDocument(store, absPath));
   ipcMain.handle('hub:openSopFolder', async () => {

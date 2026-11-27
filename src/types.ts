@@ -66,6 +66,7 @@ export interface ProjectUserMeta {
   notes: QuickNoteItem[];
   buildLogs: BuildLogEntry[];
   customLinks?: ProjectExternalLink[];
+  taptapFeedback?: TapTapFeedbackSnapshot;
 }
 
 export type GlassBackdropId =
@@ -79,6 +80,15 @@ export type GlassBackdropId =
 export type GlassIntensityId = 'clear' | 'balanced' | 'frosted';
 export type PreferredEditorId = 'auto' | 'cursor' | 'code' | 'trae';
 
+export type AiReasoningEffort = 'none' | 'low' | 'high' | 'max';
+
+export interface AiProviderConfig {
+  baseUrl: string;
+  apiKey: string;
+  model: string;
+  reasoningEffort?: AiReasoningEffort;
+}
+
 export interface AppSettings {
   backdrop: GlassBackdropId;
   glassIntensity: GlassIntensityId;
@@ -88,6 +98,7 @@ export interface AppSettings {
   gitHideSyncByDefault: boolean;
   autoArchiveCopies: boolean;
   sopPath?: string;
+  ai?: AiProviderConfig;
 }
 
 export interface HubPersistedState {
@@ -408,6 +419,135 @@ export interface SopLibraryData {
   reports: SopReportItem[];
 }
 
+export type FeedbackCategoryId =
+  | 'ad'
+  | 'crash'
+  | 'save'
+  | 'balance'
+  | 'ui'
+  | 'praise'
+  | 'other';
+
+export interface TapTapRatingSummary {
+  score: string;
+  latestScore?: string;
+  latestVersionScore?: string;
+  totalReviews: number;
+  latestVersionReviews?: number;
+  feedCount?: number;
+  voteDistribution: Record<'1' | '2' | '3' | '4' | '5', number>;
+}
+
+export interface TapTapReviewItem {
+  id: string;
+  author: string;
+  score: number;
+  text: string;
+  device?: string;
+  playedMinutes?: number;
+  stageLabel?: string;
+  ups: number;
+  comments: number;
+  createdAt: string;
+  url: string;
+  categories: FeedbackCategoryId[];
+}
+
+export interface TapTapForumPostItem {
+  id: string;
+  author: string;
+  title: string;
+  text: string;
+  ups: number;
+  comments: number;
+  createdAt: string;
+  url: string;
+  categories: FeedbackCategoryId[];
+}
+
+export interface FeedbackCategoryStat {
+  id: FeedbackCategoryId;
+  label: string;
+  count: number;
+  lowStarCount: number;
+}
+
+export interface AiFeedbackIssueItem {
+  id: string;
+  priority: 'P0' | 'P1' | 'P2';
+  category: FeedbackCategoryId;
+  title: string;
+  detail: string;
+  evidenceCount: number;
+  devices?: string[];
+  suggestedAction: string;
+}
+
+export interface AiFeedbackSummary {
+  generatedAt: string;
+  model: string;
+  scope?: 'all' | 'new';
+  reasoningEffort?: AiReasoningEffort;
+  durationMs?: number;
+  analyzedReviews?: number;
+  analyzedForumPosts?: number;
+  overview: string;
+  issues: AiFeedbackIssueItem[];
+  highlights: string[];
+}
+
+export interface TapTapFeedbackProgress {
+  projectPath: string;
+  mode: 'full' | 'incremental';
+  phase: 'rating' | 'reviews' | 'forum' | 'done';
+  reviewsFetched: number;
+  reviewsTotal?: number;
+  forumFetched: number;
+  forumTotal?: number;
+}
+
+export interface TapTapFeedbackSnapshot {
+  appId: string;
+  groupId?: string;
+  appTitle?: string;
+  fetchedAt: string;
+  lastSyncMode?: 'full' | 'incremental';
+  lastSyncNewReviewIds?: string[];
+  lastSyncNewForumIds?: string[];
+  hasMoreReviews?: boolean;
+  hasMoreForumPosts?: boolean;
+  rating: TapTapRatingSummary;
+  reviews: TapTapReviewItem[];
+  forumPosts: TapTapForumPostItem[];
+  categoryStats: FeedbackCategoryStat[];
+  warnings?: string[];
+  aiSummary?: AiFeedbackSummary | null;
+}
+
+export interface TapTapFeedbackFetchResult {
+  ok: boolean;
+  data?: TapTapFeedbackSnapshot;
+  error?: string;
+}
+
+export interface AiFeedbackSummarizeResult {
+  ok: boolean;
+  summary?: AiFeedbackSummary;
+  error?: string;
+}
+
+export interface AiConnectionTestResult {
+  ok: boolean;
+  model?: string;
+  error?: string;
+}
+
+export interface AiModelsListResult {
+  ok: boolean;
+  models?: string[];
+  error?: string;
+}
+
 export type QuickFilterId =
   | 'all'
   | 'pulse'
@@ -427,6 +567,22 @@ export interface GameHubBridge {
   getCommitDetail: (projectPath: string, hash: string) => Promise<CommitDetailData | null>;
   getProjectTelemetry: (projectPath: string) => Promise<ProjectTelemetry>;
   getStudioPulse: () => Promise<StudioPulseData>;
+  getCachedTapTapFeedback: (projectPath: string) => Promise<TapTapFeedbackSnapshot | null>;
+  fetchTapTapFeedback: (
+    projectPath: string,
+    appId: string | number,
+    options?: { forceFull?: boolean }
+  ) => Promise<TapTapFeedbackFetchResult>;
+  onTapTapFeedbackProgress: (cb: (p: TapTapFeedbackProgress) => void) => () => void;
+  summarizeTapTapFeedback: (
+    projectPath: string,
+    projectName: string,
+    version?: string,
+    scope?: 'all' | 'new',
+    reasoningEffort?: AiReasoningEffort
+  ) => Promise<AiFeedbackSummarizeResult>;
+  testAiConnection: (config: AiProviderConfig) => Promise<AiConnectionTestResult>;
+  listAiModels: (config: AiProviderConfig) => Promise<AiModelsListResult>;
   getSopLibrary: () => Promise<SopLibraryData>;
   readSopDoc: (absPath: string) => Promise<string>;
   openSopFolder: () => Promise<void>;

@@ -1,5 +1,10 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import {
+  AiConnectionTestResult,
+  AiFeedbackSummarizeResult,
+  AiModelsListResult,
+  AiProviderConfig,
+  AiReasoningEffort,
   AppSettings,
   BuildLogEntry,
   CommitDetailData,
@@ -15,6 +20,9 @@ import {
   SopSkillInstallResult,
   StageTodoItem,
   StudioPulseData,
+  TapTapFeedbackFetchResult,
+  TapTapFeedbackProgress,
+  TapTapFeedbackSnapshot,
 } from './types';
 
 const api = {
@@ -28,6 +36,38 @@ const api = {
   getProjectTelemetry: (projectPath: string): Promise<ProjectTelemetry> =>
     ipcRenderer.invoke('hub:getProjectTelemetry', projectPath),
   getStudioPulse: (): Promise<StudioPulseData> => ipcRenderer.invoke('hub:getStudioPulse'),
+  getCachedTapTapFeedback: (projectPath: string): Promise<TapTapFeedbackSnapshot | null> =>
+    ipcRenderer.invoke('hub:getCachedTapTapFeedback', projectPath),
+  fetchTapTapFeedback: (
+    projectPath: string,
+    appId: string | number,
+    options?: { forceFull?: boolean }
+  ): Promise<TapTapFeedbackFetchResult> =>
+    ipcRenderer.invoke('hub:fetchTapTapFeedback', projectPath, appId, options),
+  onTapTapFeedbackProgress: (cb: (p: TapTapFeedbackProgress) => void) => {
+    const listener = (_e: Electron.IpcRendererEvent, p: TapTapFeedbackProgress) => cb(p);
+    ipcRenderer.on('taptap:feedback-progress', listener);
+    return () => ipcRenderer.removeListener('taptap:feedback-progress', listener);
+  },
+  summarizeTapTapFeedback: (
+    projectPath: string,
+    projectName: string,
+    version?: string,
+    scope?: 'all' | 'new',
+    reasoningEffort?: AiReasoningEffort
+  ): Promise<AiFeedbackSummarizeResult> =>
+    ipcRenderer.invoke(
+      'hub:summarizeTapTapFeedback',
+      projectPath,
+      projectName,
+      version,
+      scope,
+      reasoningEffort
+    ),
+  testAiConnection: (config: AiProviderConfig): Promise<AiConnectionTestResult> =>
+    ipcRenderer.invoke('hub:testAiConnection', config),
+  listAiModels: (config: AiProviderConfig): Promise<AiModelsListResult> =>
+    ipcRenderer.invoke('hub:listAiModels', config),
   getSopLibrary: (): Promise<SopLibraryData> => ipcRenderer.invoke('hub:getSopLibrary'),
   readSopDoc: (absPath: string): Promise<string> => ipcRenderer.invoke('hub:readSopDoc', absPath),
   openSopFolder: (): Promise<void> => ipcRenderer.invoke('hub:openSopFolder'),
