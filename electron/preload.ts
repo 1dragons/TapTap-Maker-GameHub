@@ -24,6 +24,9 @@ import {
   TapTapFeedbackFetchResult,
   TapTapFeedbackProgress,
   TapTapFeedbackSnapshot,
+  TapTapStatsBatchProgress,
+  TapTapStatsBatchResult,
+  TapTapStatsFetchResult,
   UpdateApplyResult,
   UpdateCheckResult,
   UpdateDownloadProgress,
@@ -42,6 +45,19 @@ const api = {
   getStudioPulse: (): Promise<StudioPulseData> => ipcRenderer.invoke('hub:getStudioPulse'),
   getCachedTapTapFeedback: (projectPath: string): Promise<TapTapFeedbackSnapshot | null> =>
     ipcRenderer.invoke('hub:getCachedTapTapFeedback', projectPath),
+  fetchTapTapStats: (
+    projectPath: string,
+    appId: string | number,
+    options?: { force?: boolean }
+  ): Promise<TapTapStatsFetchResult> =>
+    ipcRenderer.invoke('hub:fetchTapTapStats', projectPath, appId, options),
+  syncAllTapTapStats: (options?: { force?: boolean }): Promise<TapTapStatsBatchResult> =>
+    ipcRenderer.invoke('hub:syncAllTapTapStats', options),
+  onTapTapStatsProgress: (cb: (p: TapTapStatsBatchProgress) => void) => {
+    const listener = (_e: Electron.IpcRendererEvent, p: TapTapStatsBatchProgress) => cb(p);
+    ipcRenderer.on('taptap:stats-progress', listener);
+    return () => ipcRenderer.removeListener('taptap:stats-progress', listener);
+  },
   fetchTapTapFeedback: (
     projectPath: string,
     appId: string | number,

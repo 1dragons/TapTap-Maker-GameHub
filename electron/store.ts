@@ -11,6 +11,7 @@ import {
   QuickNoteItem,
   StageTodoItem,
   TapTapFeedbackSnapshot,
+  TapTapStatsSnapshot,
 } from './types';
 
 export const DEFAULT_AI_CONFIG: AiProviderConfig = {
@@ -29,6 +30,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   gitHideSyncByDefault: false,
   autoArchiveCopies: true,
   autoCheckUpdate: true,
+  autoFetchTapTapStatsDaily: true,
   sopPath: '',
   ai: { ...DEFAULT_AI_CONFIG },
 };
@@ -308,5 +310,18 @@ export class HubStore {
     };
     this.updateProjectMeta(projectPath, { taptapFeedback: next });
     return next;
+  }
+
+  getTapTapStats(projectPath: string): TapTapStatsSnapshot | null {
+    const current = this.getProjectMeta(projectPath);
+    return current.taptapStats || null;
+  }
+
+  saveTapTapStats(
+    projectPath: string,
+    snapshot: TapTapStatsSnapshot
+  ): TapTapStatsSnapshot {
+    this.updateProjectMeta(projectPath, { taptapStats: snapshot });
+    return snapshot;
   }
 }

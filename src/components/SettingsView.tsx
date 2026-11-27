@@ -6,6 +6,7 @@ import {
   Download,
   Eye,
   EyeOff,
+  Flame,
   FolderOpen,
   FolderPlus,
   Gamepad2,
@@ -1112,7 +1113,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Auto Check Update Toggle */}
           <div
             className="p-3.5 rounded-2xl border flex items-center justify-between gap-3"
@@ -1133,6 +1134,29 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <AppleSwitch
               checked={settings.autoCheckUpdate !== false}
               onChange={(v) => onUpdateSettings({ autoCheckUpdate: v })}
+            />
+          </div>
+
+          {/* Daily Auto Fetch TapTap Heat & Followers Toggle */}
+          <div
+            className="p-3.5 rounded-2xl border flex items-center justify-between gap-3"
+            style={{
+              backgroundColor: 'var(--bg-surface-strong)',
+              borderColor: 'var(--border-subtle)',
+            }}
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <Flame className="w-4 h-4 text-orange-500 shrink-0" />
+              <div className="min-w-0">
+                <div className="text-xs font-semibold">每日首次打开自动抓取 TapTap 热度与关注</div>
+                <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                  每天最多自动抓取 1 次，逐款间隔 1.1~1.7 秒防 IP 风控；随时可手动刷新
+                </div>
+              </div>
+            </div>
+            <AppleSwitch
+              checked={settings.autoFetchTapTapStatsDaily !== false}
+              onChange={(v) => onUpdateSettings({ autoFetchTapTapStatsDaily: v })}
             />
           </div>
 
@@ -1219,7 +1243,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <span className="font-semibold" style={{ color: 'var(--text-secondary)' }}>
               GameHub 游戏总控台
             </span>
-            <span className="font-mono">v{appVersion || '1.2.0'}</span>
+            <span className="font-mono">v{appVersion || '1.3.0'}</span>
           </span>
           <span>默认本地只读 · 联网仅按需触发 · 绝不上传或修改你的游戏源码</span>
         </div>

@@ -215,6 +215,7 @@ const body = [
   '',
   '苹果浅色毛玻璃风格本地游戏项目总控台 + 内置 TapTap Maker 小游戏开发 SOP v2.0 中心 + TapTap 玩家评价与论坛问题雷达。默认本地只读运行，联网仅在手动点击时按需触发，绝不改动你的游戏源码。',
   '',
+  '- 🔥 **TapTap 热度与关注趋势监控**：每日首次打开自动温和抓取 1 次（串行防 IP 风控），首页支持按热度/关注排序与实时刷新，每款游戏独立提供 60 天热度/关注曲线、双线对比与每日净增柱状图',
   '- 📡 **TapTap 玩家评价 & 论坛问题雷达**：首次全量抓取、后续秒级增量同步并高亮 `NEW` 新增项；本地六维痛点聚合 + 可选 BYOK 多模型（DeepSeek / 通义千问 / MiniMax / 智谱 GLM / Ollama）+ 4 档 AI 思考强度一键诊断',
   '- 🔄 **软件内一键检测与无损更新**：自动识别安装版与绿色便携版，升级前自动备份 `hub-state.json` 并执行 SHA-256 校验，100% 无损保留配置与记录',
   '- 📖 **SOP v2.0 工作台 + 四件套 AI 技能一键安装**：覆盖 2D/3D 横竖屏实战规范与三排矢量流程图，内置 `taptap-maker-sop` / `taptap-maker-qa` / `mini-game-version-ops` / `game-diagnosis`，一键安装到 Antigravity / Codex / Claude Code / Cursor',

@@ -67,6 +67,7 @@ export interface ProjectUserMeta {
   buildLogs: BuildLogEntry[];
   customLinks?: ProjectExternalLink[];
   taptapFeedback?: TapTapFeedbackSnapshot;
+  taptapStats?: TapTapStatsSnapshot;
 }
 
 export type GlassBackdropId =
@@ -98,6 +99,7 @@ export interface AppSettings {
   gitHideSyncByDefault: boolean;
   autoArchiveCopies: boolean;
   autoCheckUpdate?: boolean;
+  autoFetchTapTapStatsDaily?: boolean;
   sopPath?: string;
   ai?: AiProviderConfig;
 }
@@ -182,6 +184,7 @@ export interface ProjectCardData {
   targetDate?: string;
   targetGoal?: string;
   customLinks: ProjectExternalLink[];
+  taptapStats?: TapTapStatsSnapshot | null;
 }
 
 export interface GitRefBadge {
@@ -552,6 +555,58 @@ export interface TapTapFeedbackFetchResult {
   error?: string;
 }
 
+export interface TapTapStatsHistoryPoint {
+  dateKey: string;
+  heat: number;
+  fans: number;
+  reserve?: number;
+  score?: string;
+  fetchedAt: string;
+}
+
+export interface TapTapStatsSnapshot {
+  appId: string;
+  heat: number;
+  fans: number;
+  reserve?: number;
+  reviewCount?: number;
+  score?: string;
+  fetchedAt: string;
+  lastDateKey: string;
+  prevHeat?: number;
+  prevFans?: number;
+  history: TapTapStatsHistoryPoint[];
+}
+
+export interface TapTapStatsFetchResult {
+  ok: boolean;
+  data?: TapTapStatsSnapshot;
+  skipped?: boolean;
+  rateLimited?: boolean;
+  error?: string;
+}
+
+export interface TapTapStatsBatchProgress {
+  current: number;
+  total: number;
+  projectPath: string;
+  projectName: string;
+  stats?: TapTapStatsSnapshot;
+  error?: string;
+  done?: boolean;
+  rateLimited?: boolean;
+}
+
+export interface TapTapStatsBatchResult {
+  ok: boolean;
+  totalTargets: number;
+  updated: number;
+  skipped: number;
+  failed: number;
+  rateLimited?: boolean;
+  error?: string;
+}
+
 export interface AiFeedbackSummarizeResult {
   ok: boolean;
   summary?: AiFeedbackSummary;
@@ -628,6 +683,13 @@ export interface GameHubBridge {
   getProjectTelemetry: (projectPath: string) => Promise<ProjectTelemetry>;
   getStudioPulse: () => Promise<StudioPulseData>;
   getCachedTapTapFeedback: (projectPath: string) => Promise<TapTapFeedbackSnapshot | null>;
+  fetchTapTapStats: (
+    projectPath: string,
+    appId: string | number,
+    options?: { force?: boolean }
+  ) => Promise<TapTapStatsFetchResult>;
+  syncAllTapTapStats: (options?: { force?: boolean }) => Promise<TapTapStatsBatchResult>;
+  onTapTapStatsProgress: (cb: (p: TapTapStatsBatchProgress) => void) => () => void;
   fetchTapTapFeedback: (
     projectPath: string,
     appId: string | number,

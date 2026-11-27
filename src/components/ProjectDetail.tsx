@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
+  AlertTriangle,
   Archive,
   ArchiveRestore,
   Bot,
@@ -11,6 +12,7 @@ import {
   Flame,
   FolderOpen,
   Gamepad2,
+  Heart,
   ImagePlus,
   Megaphone,
   Monitor,
@@ -19,6 +21,7 @@ import {
   Radar,
   RefreshCw,
   Smartphone,
+  Star,
   Terminal,
   Trash2,
 } from 'lucide-react';
@@ -34,7 +37,7 @@ import {
   QuickNoteItem,
   StageTodoItem,
 } from '../types';
-import { mediaUrl } from '../utils';
+import { formatCompactCount, formatRelativeTime, formatStatsDelta, getLocalDateKey, mediaUrl } from '../utils';
 import { BuildUploadCard } from './BuildUploadCard';
 import { GitTreeGraph } from './GitTreeGraph';
 import { LifecycleFlowchart } from './LifecycleFlowchart';
@@ -42,10 +45,14 @@ import { PlayerFeedbackCard } from './PlayerFeedbackCard';
 import { ProjectTelemetryStrip } from './ProjectTelemetryStrip';
 import { ReleaseNotesModal } from './ReleaseNotesModal';
 import { StudioPadCard } from './StudioPadCard';
+import { TapTapTrendCard } from './TapTapTrendCard';
 
 interface ProjectDetailProps {
   project: ProjectCardData;
   settings: AppSettings;
+  refreshingStats?: boolean;
+  statsError?: string | null;
+  onRefreshStats?: () => Promise<void>;
   onEdit: () => void;
   onUpdateSettings: (patch: Partial<AppSettings>) => Promise<void>;
   onOpenSettings: () => void;
@@ -87,6 +94,9 @@ const CATEGORY_MAP: Record<string, string> = {
 export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   project,
   settings,
+  refreshingStats,
+  statsError,
+  onRefreshStats,
   onEdit,
   onUpdateSettings,
   onOpenSettings,
@@ -539,8 +549,196 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
               </div>
             </div>
           )}
+
+          {/* TapTap Live Heat & Followers Strip (Daily Auto + On-Demand Instant Refresh) */}
+          {project.taptap.appId && /^\d+$/.test(String(project.taptap.appId).trim()) && (() => {
+            const stats = project.taptapStats;
+            const todayKey = getLocalDateKey();
+            const isToday = stats?.lastDateKey === todayKey;
+            const heatDelta = stats ? formatStatsDelta(stats.heat, stats.prevHeat) : null;
+            const fansDelta = stats ? formatStatsDelta(stats.fans, stats.prevFans) : null;
+
+            return (
+              <div
+                className="pt-2.5 border-t flex items-center justify-between gap-3 flex-wrap"
+                style={{ borderColor: 'var(--border-subtle)' }}
+              >
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <span className="text-[11px] font-medium" style={{ color: 'var(--text-muted)' }}>
+                    TapTap 热度与关注
+                  </span>
+
+                  {stats ? (
+                    <>
+                      <div
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-xs tabular-nums"
+                        style={{
+                          backgroundColor: 'var(--bg-surface-strong)',
+                          borderColor: 'var(--border-subtle)',
+                        }}
+                        title={`精确热度：${stats.heat.toLocaleString('zh-CN')}${
+                          stats.prevHeat !== undefined
+                            ? `（前一日 ${stats.prevHeat.toLocaleString('zh-CN')}）`
+                            : ''
+                        }`}
+                      >
+                        <Flame className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+                        <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                          热度
+                        </span>
+                        <span className="font-bold text-orange-600 dark:text-orange-400">
+                          {stats.heat.toLocaleString('zh-CN')}
+                        </span>
+                        {heatDelta && (
+                          <span
+                            className={`text-[10.5px] font-mono font-semibold px-1.5 py-0.2 rounded-md ${
+                              heatDelta.startsWith('+')
+                                ? 'bg-emerald-500/12 text-emerald-600'
+                                : 'bg-rose-500/12 text-rose-500'
+                            }`}
+                          >
+                            {heatDelta}
+                          </span>
+                        )}
+                      </div>
+
+                      <div
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-xs tabular-nums"
+                        style={{
+                          backgroundColor: 'var(--bg-surface-strong)',
+                          borderColor: 'var(--border-subtle)',
+                        }}
+                        title={`精确关注：${stats.fans.toLocaleString('zh-CN')}${
+                          stats.prevFans !== undefined
+                            ? `（前一日 ${stats.prevFans.toLocaleString('zh-CN')}）`
+                            : ''
+                        }`}
+                      >
+                        <Heart className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                        <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                          关注
+                        </span>
+                        <span className="font-bold text-rose-600 dark:text-rose-400">
+                          {stats.fans.toLocaleString('zh-CN')}
+                        </span>
+                        {fansDelta && (
+                          <span
+                            className={`text-[10.5px] font-mono font-semibold px-1.5 py-0.2 rounded-md ${
+                              fansDelta.startsWith('+')
+                                ? 'bg-emerald-500/12 text-emerald-600'
+                                : 'bg-rose-500/12 text-rose-500'
+                            }`}
+                          >
+                            {fansDelta}
+                          </span>
+                        )}
+                      </div>
+
+                      {stats.reserve && stats.reserve > 0 && (
+                        <span
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-xl border text-[11px] tabular-nums"
+                          style={{
+                            backgroundColor: 'var(--bg-surface-strong)',
+                            borderColor: 'var(--border-subtle)',
+                            color: 'var(--text-secondary)',
+                          }}
+                          title={`预约人数：${stats.reserve.toLocaleString('zh-CN')}`}
+                        >
+                          预约 <strong className="font-mono">{formatCompactCount(stats.reserve)}</strong>
+                        </span>
+                      )}
+
+                      {stats.score && (
+                        <span
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-xl border text-[11px] font-semibold tabular-nums"
+                          style={{
+                            backgroundColor: 'var(--pill-warn-bg)',
+                            borderColor: 'var(--pill-warn-border)',
+                            color: 'var(--pill-warn-text)',
+                          }}
+                        >
+                          <Star className="w-3 h-3 fill-current" />
+                          <span>{stats.score}</span>
+                        </span>
+                      )}
+
+                      <button
+                        onClick={() => {
+                          document
+                            .getElementById('taptap-stats-trend')
+                            ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-xl border text-[11px] font-medium cursor-pointer hover:border-orange-400 hover:text-orange-600 transition-colors"
+                        style={{
+                          backgroundColor: 'var(--bg-surface-strong)',
+                          borderColor: 'var(--border-subtle)',
+                          color: 'var(--text-secondary)',
+                        }}
+                      >
+                        <span>查看趋势图 ↓</span>
+                      </button>
+                    </>
+                  ) : (
+                    <span className="text-[11.5px]" style={{ color: 'var(--text-muted)' }}>
+                      {refreshingStats
+                        ? '正在拉取实时热度与关注…'
+                        : '尚未抓取，每日首次打开自动抓取 1 次，或点击右侧立即抓取'}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  {statsError && (
+                    <span
+                      className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-lg border"
+                      style={{
+                        backgroundColor: 'var(--pill-err-bg)',
+                        borderColor: 'var(--pill-err-border)',
+                        color: 'var(--pill-err-text)',
+                      }}
+                    >
+                      <AlertTriangle className="w-3 h-3 shrink-0" />
+                      <span>{statsError}</span>
+                    </span>
+                  )}
+                  {stats && (
+                    <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                      {isToday ? '今日已同步' : `上次同步 ${stats.lastDateKey}`} ·{' '}
+                      {formatRelativeTime(stats.fetchedAt)}
+                    </span>
+                  )}
+                  {onRefreshStats && (
+                    <button
+                      onClick={onRefreshStats}
+                      disabled={refreshingStats}
+                      title="立即向 TapTap 拉取当前实时热度与关注"
+                      className="h-7 px-2.5 rounded-lg border text-[11px] font-semibold inline-flex items-center gap-1 cursor-pointer hover:border-orange-400 hover:text-orange-600 transition-colors disabled:opacity-60"
+                      style={{
+                        backgroundColor: 'var(--bg-surface-strong)',
+                        borderColor: 'var(--border-subtle)',
+                        color: 'var(--text-primary)',
+                      }}
+                    >
+                      <RefreshCw
+                        className={`w-3 h-3 ${refreshingStats ? 'animate-spin text-orange-500' : ''}`}
+                      />
+                      <span>{refreshingStats ? '抓取中…' : '立即刷新'}</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
+
+      {/* Module 0.5: Dedicated TapTap Heat & Followers Trend Chart (per-game) */}
+      <TapTapTrendCard
+        project={project}
+        refreshing={refreshingStats}
+        error={statsError}
+        onRefresh={onRefreshStats}
+      />
 
       {/* Module 1: macOS Asset Storage Bar + 14-Day Commit Cadence Bento */}
       <ProjectTelemetryStrip telemetry={telemetry} loading={telemetryLoading} />

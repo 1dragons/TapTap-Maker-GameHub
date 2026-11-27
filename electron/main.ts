@@ -22,6 +22,10 @@ import {
   summarizeFeedbackWithAi,
   testAiConnection,
 } from './taptapFeedback';
+import {
+  syncAllProjectsTapTapStats,
+  syncSingleProjectTapTapStats,
+} from './taptapStats';
 import { getProjectTelemetry } from './telemetry';
 import { applyAppUpdate, checkForUpdates } from './updater';
 import {
@@ -201,6 +205,16 @@ app.whenReady().then(() => {
   ipcMain.handle('hub:getStudioPulse', () => getStudioPulse(store));
   ipcMain.handle('hub:getCachedTapTapFeedback', (_e, projectPath: string) =>
     store.getTapTapFeedback(projectPath)
+  );
+  ipcMain.handle(
+    'hub:fetchTapTapStats',
+    (_e, projectPath: string, appId: string | number, options?: { force?: boolean }) =>
+      syncSingleProjectTapTapStats(store, projectPath, appId, options || {})
+  );
+  ipcMain.handle('hub:syncAllTapTapStats', (_e, options?: { force?: boolean }) =>
+    syncAllProjectsTapTapStats(store, options || {}, (progress) => {
+      mainWindow?.webContents.send('taptap:stats-progress', progress);
+    })
   );
   ipcMain.handle(
     'hub:fetchTapTapFeedback',

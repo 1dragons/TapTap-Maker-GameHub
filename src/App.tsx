@@ -1,5 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, Flame, FolderPlus, Gamepad2, ShieldCheck, Sparkles, Trash2 } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArrowRight,
+  Flame,
+  FolderPlus,
+  Gamepad2,
+  Heart,
+  RefreshCw,
+  ShieldCheck,
+  Sparkles,
+  Trash2,
+} from 'lucide-react';
 import { getCountdownInfo } from './aiHelpers';
 import { CommandPalette } from './components/CommandPalette';
 import { EditProjectModal } from './components/EditProjectModal';
@@ -24,9 +35,10 @@ import {
   QuickFilterId,
   QuickNoteItem,
   StageTodoItem,
+  TapTapStatsBatchProgress,
   UpdateCheckResult,
 } from './types';
-import { mediaUrl } from './utils';
+import { formatCompactCount, getLocalDateKey, mediaUrl } from './utils';
 
 const DEFAULT_SETTINGS: AppSettings = {
   backdrop: 'aurora',
@@ -37,6 +49,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   gitHideSyncByDefault: false,
   autoArchiveCopies: true,
   autoCheckUpdate: true,
+  autoFetchTapTapStatsDaily: true,
   sopPath: '',
   ai: { baseUrl: '', apiKey: '', model: '', reasoningEffort: 'low' },
 };
@@ -61,10 +74,16 @@ export default function App() {
   const [showPalette, setShowPalette] = useState(false);
   const [confirmClearArchived, setConfirmClearArchived] = useState(false);
   const [maximized, setMaximized] = useState(false);
-  const [appVersion, setAppVersion] = useState('1.2.0');
+  const [appVersion, setAppVersion] = useState('1.3.0');
   const [updateInfo, setUpdateInfo] = useState<UpdateCheckResult | null>(null);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [sortBy, setSortBy] = useState<'recent' | 'heat' | 'fans'>('recent');
+  const [syncingAllStats, setSyncingAllStats] = useState(false);
+  const [statsBatchProgress, setStatsBatchProgress] = useState<TapTapStatsBatchProgress | null>(null);
+  const [statsNotice, setStatsNotice] = useState<{ tone: 'ok' | 'warn'; text: string } | null>(null);
+  const [refreshingStatsId, setRefreshingStatsId] = useState<string | null>(null);
+  const [statsErrorById, setStatsErrorById] = useState<Record<string, string>>({});
 
   const applyVisualAttributes = (theme: 'dark' | 'light', settings: AppSettings) => {
     const html = document.documentElement;
@@ -103,9 +122,67 @@ export default function App() {
     }
   };
 
+  const handleSyncAllTapTapStats = async (force = true) => {
+    if (syncingAllStats) return;
+    setSyncingAllStats(true);
+    setStatsNotice(null);
+    setStatsBatchProgress(null);
+    try {
+      const res = await window.gameHub.syncAllTapTapStats({ force });
+      if (res.rateLimited) {
+        setStatsNotice({
+          tone: 'warn',
+          text: res.error || 'TapTap 触发临时频率保护，已自动暂停剩余抓取以保护 IP',
+        });
+      } else if (force) {
+        if (res.totalTargets === 0) {
+          setStatsNotice({ tone: 'warn', text: '当前没有配置有效 TapTap AppID 的活跃项目' });
+        } else {
+          setStatsNotice({
+            tone: res.failed > 0 && res.updated === 0 ? 'warn' : 'ok',
+            text:
+              res.failed > 0
+                ? `已刷新 ${res.updated} 款游戏热度与关注（${res.failed} 款暂无公开数据或跳过）`
+                : `已实时刷新全部 ${res.updated} 款游戏的 TapTap 热度与关注`,
+          });
+        }
+      }
+    } finally {
+      setSyncingAllStats(false);
+      setStatsBatchProgress(null);
+    }
+  };
+
+  const handleRefreshSingleStats = async (project: ProjectCardData) => {
+    const appId = project.taptap.appId ? String(project.taptap.appId).trim() : '';
+    if (!appId || !/^\d+$/.test(appId)) return;
+    if (refreshingStatsId === project.id) return;
+    setRefreshingStatsId(project.id);
+    setStatsErrorById((prev) => {
+      if (!prev[project.id]) return prev;
+      const next = { ...prev };
+      delete next[project.id];
+      return next;
+    });
+    try {
+      const res = await window.gameHub.fetchTapTapStats(project.path, appId, { force: true });
+      if (res.ok && res.data) {
+        setProjects((prev) =>
+          prev.map((p) => (p.id === project.id ? { ...p, taptapStats: res.data } : p))
+        );
+      } else if (res.error) {
+        setStatsErrorById((prev) => ({ ...prev, [project.id]: res.error! }));
+      }
+    } finally {
+      setRefreshingStatsId((cur) => (cur === project.id ? null : cur));
+    }
+  };
+
   useEffect(() => {
     let cleanup: (() => void) | undefined;
+    let cleanupStats: (() => void) | undefined;
     let updateTimer: ReturnType<typeof setTimeout> | undefined;
+    let dailyStatsTimer: ReturnType<typeof setTimeout> | undefined;
     (async () => {
       const [st, isMax, ver] = await Promise.all([
         window.gameHub.getState(),
@@ -131,11 +208,49 @@ export default function App() {
             .catch(() => {});
         }, 2500);
       }
+
+      if (normalizedSettings.autoFetchTapTapStatsDaily !== false) {
+        dailyStatsTimer = setTimeout(() => {
+          setSyncingAllStats(true);
+          window.gameHub
+            .syncAllTapTapStats({ force: false })
+            .then((res) => {
+              if (res.rateLimited) {
+                setStatsNotice({
+                  tone: 'warn',
+                  text: res.error || 'TapTap 触发临时频率保护，已自动暂停今日剩余抓取',
+                });
+              }
+            })
+            .catch(() => {})
+            .finally(() => {
+              setSyncingAllStats(false);
+              setStatsBatchProgress(null);
+            });
+        }, 3200);
+      }
     })();
     cleanup = window.gameHub.onWindowState((isMax) => setMaximized(isMax));
+    cleanupStats = window.gameHub.onTapTapStatsProgress((p) => {
+      if (p.done) {
+        setStatsBatchProgress(null);
+        return;
+      }
+      setStatsBatchProgress(p);
+      if (p.stats && p.projectPath) {
+        const normPath = p.projectPath.toLowerCase();
+        setProjects((prev) =>
+          prev.map((item) =>
+            item.path.toLowerCase() === normPath ? { ...item, taptapStats: p.stats } : item
+          )
+        );
+      }
+    });
     return () => {
       cleanup?.();
+      cleanupStats?.();
       if (updateTimer) clearTimeout(updateTimer);
+      if (dailyStatsTimer) clearTimeout(dailyStatsTimer);
     };
   }, []);
 
@@ -285,7 +400,7 @@ export default function App() {
 
   const filteredProjects = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    return projects.filter((p) => {
+    const list = projects.filter((p) => {
       if (quickFilter === 'archived') {
         if (!p.archived) return false;
       } else {
@@ -310,7 +425,41 @@ export default function App() {
       }
       return true;
     });
-  }, [projects, quickFilter, stageFilter, searchQuery]);
+
+    if (sortBy === 'heat' || sortBy === 'fans') {
+      return [...list].sort((a, b) => {
+        if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+        const aVal = sortBy === 'heat' ? a.taptapStats?.heat ?? -1 : a.taptapStats?.fans ?? -1;
+        const bVal = sortBy === 'heat' ? b.taptapStats?.heat ?? -1 : b.taptapStats?.fans ?? -1;
+        if (bVal !== aVal) return bVal - aVal;
+        return new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime();
+      });
+    }
+    return list;
+  }, [projects, quickFilter, stageFilter, searchQuery, sortBy]);
+
+  const taptapStatsSummary = useMemo(() => {
+    const todayKey = getLocalDateKey();
+    const tracked = projects.filter(
+      (p) => !p.archived && p.taptap.appId && /^\d+$/.test(String(p.taptap.appId).trim())
+    );
+    let totalHeat = 0;
+    let totalFans = 0;
+    let todayCount = 0;
+    for (const p of tracked) {
+      if (p.taptapStats) {
+        totalHeat += p.taptapStats.heat || 0;
+        totalFans += p.taptapStats.fans || 0;
+        if (p.taptapStats.lastDateKey === todayKey) todayCount += 1;
+      }
+    }
+    return {
+      trackedCount: tracked.length,
+      todayCount,
+      totalHeat,
+      totalFans,
+    };
+  }, [projects]);
 
   const pageTitle = useMemo(() => {
     if (stageFilter) {
@@ -407,6 +556,9 @@ export default function App() {
             <ProjectDetail
               project={selectedProject}
               settings={hubState.settings}
+              refreshingStats={refreshingStatsId === selectedProject.id}
+              statsError={statsErrorById[selectedProject.id] || null}
+              onRefreshStats={() => handleRefreshSingleStats(selectedProject)}
               onEdit={() => setEditingProject(selectedProject)}
               onUpdateSettings={handleUpdateSettings}
               onOpenSettings={() => {
@@ -534,6 +686,120 @@ export default function App() {
                 onStageFilter={setStageFilter}
               />
 
+              {/* TapTap Heat & Followers Daily Sync Strip (only when active projects have TapTap AppIDs) */}
+              {quickFilter !== 'archived' && taptapStatsSummary.trackedCount > 0 && (
+                <div className="glass-card rounded-2xl px-4 py-2.5 mb-4 flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-3 flex-wrap text-xs">
+                    <span className="font-semibold flex items-center gap-1.5">
+                      <Flame className="w-3.5 h-3.5 text-orange-500" />
+                      <span>TapTap 热度与关注</span>
+                    </span>
+
+                    <span
+                      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg border tabular-nums text-[11.5px]"
+                      style={{
+                        backgroundColor: 'var(--bg-surface-strong)',
+                        borderColor: 'var(--border-subtle)',
+                      }}
+                      title={`全部 ${taptapStatsSummary.trackedCount} 款带 AppID 活跃游戏累计热度：${taptapStatsSummary.totalHeat.toLocaleString('zh-CN')}`}
+                    >
+                      <span style={{ color: 'var(--text-muted)' }}>总热度</span>
+                      <strong className="text-orange-600 dark:text-orange-400">
+                        {formatCompactCount(taptapStatsSummary.totalHeat)}
+                      </strong>
+                    </span>
+
+                    <span
+                      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg border tabular-nums text-[11.5px]"
+                      style={{
+                        backgroundColor: 'var(--bg-surface-strong)',
+                        borderColor: 'var(--border-subtle)',
+                      }}
+                      title={`全部 ${taptapStatsSummary.trackedCount} 款带 AppID 活跃游戏累计关注：${taptapStatsSummary.totalFans.toLocaleString('zh-CN')}`}
+                    >
+                      <Heart className="w-3 h-3 text-rose-500" />
+                      <span style={{ color: 'var(--text-muted)' }}>总关注</span>
+                      <strong className="text-rose-600 dark:text-rose-400">
+                        {formatCompactCount(taptapStatsSummary.totalFans)}
+                      </strong>
+                    </span>
+
+                    {syncingAllStats && statsBatchProgress ? (
+                      <span className="text-[11px] text-blue-600 font-medium">
+                        正在温和同步 ({statsBatchProgress.current}/{statsBatchProgress.total})：
+                        {statsBatchProgress.projectName}…
+                      </span>
+                    ) : statsNotice ? (
+                      <span
+                        className="inline-flex items-center gap-1 text-[11px] font-medium"
+                        style={{
+                          color:
+                            statsNotice.tone === 'warn'
+                              ? 'var(--pill-warn-text)'
+                              : 'var(--pill-ok-text)',
+                        }}
+                      >
+                        {statsNotice.tone === 'warn' && <AlertTriangle className="w-3 h-3" />}
+                        <span>{statsNotice.text}</span>
+                      </span>
+                    ) : (
+                      <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                        今日已同步 {taptapStatsSummary.todayCount}/{taptapStatsSummary.trackedCount} 款
+                        · 每日首次打开自动抓取 1 次（防 IP 风控）
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div
+                      className="inline-flex p-0.5 rounded-xl border text-[11px]"
+                      style={{
+                        backgroundColor: 'var(--bg-elevated)',
+                        borderColor: 'var(--border-subtle)',
+                      }}
+                    >
+                      {(
+                        [
+                          { id: 'recent', label: '最近活跃' },
+                          { id: 'heat', label: '按热度' },
+                          { id: 'fans', label: '按关注' },
+                        ] as const
+                      ).map((opt) => (
+                        <button
+                          key={opt.id}
+                          onClick={() => setSortBy(opt.id)}
+                          className="h-6 px-2 rounded-lg font-medium cursor-pointer transition-all"
+                          style={{
+                            backgroundColor:
+                              sortBy === opt.id ? 'var(--bg-surface-strong)' : 'transparent',
+                            color:
+                              sortBy === opt.id ? 'var(--accent-primary)' : 'var(--text-muted)',
+                          }}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    <button
+                      disabled={syncingAllStats}
+                      onClick={() => handleSyncAllTapTapStats(true)}
+                      title="立即逐款温和抓取全部带 AppID 游戏的最新实时热度与关注"
+                      className="h-7 px-3 rounded-xl border text-[11.5px] font-semibold inline-flex items-center gap-1.5 cursor-pointer hover:border-orange-400 hover:text-orange-600 transition-colors disabled:opacity-60"
+                      style={{
+                        backgroundColor: 'var(--bg-surface-strong)',
+                        borderColor: 'var(--border-subtle)',
+                      }}
+                    >
+                      <RefreshCw
+                        className={`w-3 h-3 ${syncingAllStats ? 'animate-spin text-orange-500' : ''}`}
+                      />
+                      <span>{syncingAllStats ? '同步中…' : '刷新热度/关注'}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Archived View Safe Clear Banner */}
               {quickFilter === 'archived' && filteredProjects.length > 0 && (
                 <div className="glass-card rounded-2xl px-4 py-3 mb-4 flex items-center justify-between gap-3 flex-wrap">
@@ -628,11 +894,13 @@ export default function App() {
                 <GameTable
                   projects={filteredProjects}
                   refreshingId={refreshingId}
+                  refreshingStatsId={refreshingStatsId}
                   onSelect={(id) => setSelectedId(id)}
                   onEdit={(p) => setEditingProject(p)}
                   onToggleArchive={(p) => handleUpdateProjectMeta(p, { archived: !p.archived })}
                   onRemoveFromHub={(p) => handleRemoveProjectsFromHub([p.path])}
                   onRefresh={(p) => refreshSingle(p)}
+                  onRefreshStats={(p) => handleRefreshSingleStats(p)}
                 />
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -641,6 +909,7 @@ export default function App() {
                       key={project.id}
                       project={project}
                       refreshing={refreshingId === project.id}
+                      refreshingStats={refreshingStatsId === project.id}
                       onSelect={() => setSelectedId(project.id)}
                       onEdit={(e) => {
                         e.stopPropagation();
@@ -661,6 +930,10 @@ export default function App() {
                       onRefresh={(e) => {
                         e.stopPropagation();
                         refreshSingle(project);
+                      }}
+                      onRefreshStats={(e) => {
+                        e.stopPropagation();
+                        handleRefreshSingleStats(project);
                       }}
                       onOpenFolder={(e) => {
                         e.stopPropagation();

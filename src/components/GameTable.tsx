@@ -3,34 +3,40 @@ import {
   AlertTriangle,
   ArchiveRestore,
   CheckCircle2,
+  Flame,
   FolderOpen,
   Gamepad2,
+  Heart,
   Pencil,
   RefreshCw,
   Trash2,
 } from 'lucide-react';
 import { LIFECYCLE_STAGES, STAGE_INDEX_MAP } from '../constants';
 import { ProjectCardData } from '../types';
-import { formatRelativeTime, mediaUrl } from '../utils';
+import { formatCompactCount, formatRelativeTime, formatStatsDelta, mediaUrl } from '../utils';
 
 interface GameTableProps {
   projects: ProjectCardData[];
   refreshingId: string | null;
+  refreshingStatsId?: string | null;
   onSelect: (id: string) => void;
   onEdit: (project: ProjectCardData) => void;
   onToggleArchive: (project: ProjectCardData) => void;
   onRemoveFromHub: (project: ProjectCardData) => void;
   onRefresh: (project: ProjectCardData) => void;
+  onRefreshStats?: (project: ProjectCardData) => void;
 }
 
 export const GameTable: React.FC<GameTableProps> = ({
   projects,
   refreshingId,
+  refreshingStatsId,
   onSelect,
   onEdit,
   onToggleArchive,
   onRemoveFromHub,
   onRefresh,
+  onRefreshStats,
 }) => {
   return (
     <div className="glass-card rounded-2xl overflow-hidden">
@@ -47,6 +53,7 @@ export const GameTable: React.FC<GameTableProps> = ({
             <th className="py-2.5 pl-4 pr-3 font-medium">游戏项目</th>
             <th className="py-2.5 px-3 font-medium">当前阶段</th>
             <th className="py-2.5 px-3 font-medium">版本号</th>
+            <th className="py-2.5 px-3 font-medium">热度 / 关注</th>
             <th className="py-2.5 px-3 font-medium">工作区</th>
             <th className="py-2.5 px-3 font-medium">构建与上传</th>
             <th className="py-2.5 px-3 font-medium text-right">最近活跃</th>
@@ -135,6 +142,63 @@ export const GameTable: React.FC<GameTableProps> = ({
                     <span className="text-xs font-mono" style={{ color: 'var(--text-secondary)' }}>
                       {p.displayVersion}
                     </span>
+                  ) : (
+                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                      --
+                    </span>
+                  )}
+                </td>
+
+                {/* TapTap Heat & Followers */}
+                <td className="py-3 px-3">
+                  {p.taptap.appId && /^\d+$/.test(String(p.taptap.appId).trim()) ? (
+                    <div className="flex items-center gap-2 text-[11.5px] tabular-nums">
+                      {p.taptapStats ? (
+                        <>
+                          <span
+                            className="inline-flex items-center gap-1 font-semibold text-orange-600 dark:text-orange-400"
+                            title={`精确热度：${p.taptapStats.heat.toLocaleString('zh-CN')}`}
+                          >
+                            <Flame className="w-3 h-3" />
+                            <span>{formatCompactCount(p.taptapStats.heat)}</span>
+                            {formatStatsDelta(p.taptapStats.heat, p.taptapStats.prevHeat) && (
+                              <span className="text-[10px] font-mono text-emerald-600">
+                                {formatStatsDelta(p.taptapStats.heat, p.taptapStats.prevHeat)}
+                              </span>
+                            )}
+                          </span>
+                          <span
+                            className="inline-flex items-center gap-1 font-semibold text-rose-600 dark:text-rose-400"
+                            title={`精确关注：${p.taptapStats.fans.toLocaleString('zh-CN')}`}
+                          >
+                            <Heart className="w-3 h-3" />
+                            <span>{formatCompactCount(p.taptapStats.fans)}</span>
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                          {refreshingStatsId === p.id ? '同步中…' : '待同步'}
+                        </span>
+                      )}
+                      {onRefreshStats && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onRefreshStats(p);
+                          }}
+                          disabled={refreshingStatsId === p.id}
+                          title="立即刷新 TapTap 实时热度与关注"
+                          className="w-5 h-5 rounded-md flex items-center justify-center cursor-pointer hover:bg-blue-600 hover:text-white transition-colors"
+                          style={{ color: 'var(--text-muted)' }}
+                        >
+                          <RefreshCw
+                            className={`w-3 h-3 ${
+                              refreshingStatsId === p.id ? 'animate-spin text-blue-600' : ''
+                            }`}
+                          />
+                        </button>
+                      )}
+                    </div>
                   ) : (
                     <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
                       --

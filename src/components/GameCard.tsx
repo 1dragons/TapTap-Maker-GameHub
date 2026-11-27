@@ -6,6 +6,7 @@ import {
   Flame,
   FolderOpen,
   Gamepad2,
+  Heart,
   Pencil,
   Pin,
   RefreshCw,
@@ -14,17 +15,19 @@ import {
 import { getCountdownInfo } from '../aiHelpers';
 import { LIFECYCLE_STAGES, STAGE_INDEX_MAP } from '../constants';
 import { ProjectCardData } from '../types';
-import { formatRelativeTime, mediaUrl } from '../utils';
+import { formatCompactCount, formatRelativeTime, formatStatsDelta, mediaUrl } from '../utils';
 
 interface GameCardProps {
   project: ProjectCardData;
   refreshing: boolean;
+  refreshingStats?: boolean;
   onSelect: () => void;
   onEdit: (e: React.MouseEvent) => void;
   onTogglePin: (e: React.MouseEvent) => void;
   onToggleArchive: (e: React.MouseEvent) => void;
   onRemoveFromHub: (e: React.MouseEvent) => void;
   onRefresh: (e: React.MouseEvent) => void;
+  onRefreshStats?: (e: React.MouseEvent) => void;
   onOpenFolder: (e: React.MouseEvent) => void;
 }
 
@@ -44,18 +47,24 @@ function getPastelMesh(seed: string): string {
 export const GameCard: React.FC<GameCardProps> = ({
   project,
   refreshing,
+  refreshingStats,
   onSelect,
   onEdit,
   onTogglePin,
   onToggleArchive,
   onRemoveFromHub,
   onRefresh,
+  onRefreshStats,
   onOpenFolder,
 }) => {
   const coverSrc = mediaUrl(project.coverPath);
   const stageIdx = STAGE_INDEX_MAP[project.stage];
   const stageDef = LIFECYCLE_STAGES[stageIdx];
   const countdown = getCountdownInfo(project.targetDate);
+  const hasAppId = Boolean(project.taptap.appId && /^\d+$/.test(String(project.taptap.appId).trim()));
+  const stats = project.taptapStats;
+  const heatDelta = stats ? formatStatsDelta(stats.heat, stats.prevHeat) : null;
+  const fansDelta = stats ? formatStatsDelta(stats.fans, stats.prevFans) : null;
 
   const isAllGood =
     project.git.isGit &&
@@ -285,6 +294,108 @@ export const GameCard: React.FC<GameCardProps> = ({
             );
           })}
         </div>
+
+        {/* TapTap Heat & Followers Strip (only for projects with a TapTap AppID) */}
+        {hasAppId && (
+          <div
+            className="rounded-xl px-2.5 py-1.5 border flex items-center justify-between gap-2 text-[11px]"
+            style={{
+              backgroundColor: 'var(--bg-elevated)',
+              borderColor: 'var(--border-subtle)',
+            }}
+            title={
+              stats
+                ? `TapTap 精确数据 · 热度 ${stats.heat.toLocaleString('zh-CN')} / 关注 ${stats.fans.toLocaleString('zh-CN')}${
+                    stats.reserve ? ` / 预约 ${stats.reserve.toLocaleString('zh-CN')}` : ''
+                  }${stats.score ? ` / 评分 ${stats.score}` : ''} · 更新于 ${formatRelativeTime(stats.fetchedAt)}`
+                : '尚未抓取 TapTap 热度与关注，点击右侧按钮立即抓取'
+            }
+          >
+            {stats ? (
+              <div className="flex items-center gap-2.5 min-w-0 truncate tabular-nums">
+                <span className="inline-flex items-center gap-1 font-semibold text-orange-600 dark:text-orange-400">
+                  <Flame className="w-3 h-3 shrink-0" />
+                  <span>{formatCompactCount(stats.heat)}</span>
+                  {heatDelta && (
+                    <span
+                      className={`text-[10px] font-mono ${
+                        heatDelta.startsWith('+') ? 'text-emerald-600' : 'text-rose-500'
+                      }`}
+                    >
+                      {heatDelta}
+                    </span>
+                  )}
+                </span>
+                <span className="inline-flex items-center gap-1 font-semibold text-rose-600 dark:text-rose-400">
+                  <Heart className="w-3 h-3 shrink-0" />
+                  <span>{formatCompactCount(stats.fans)}</span>
+                  {fansDelta && (
+                    <span
+                      className={`text-[10px] font-mono ${
+                        fansDelta.startsWith('+') ? 'text-emerald-600' : 'text-rose-500'
+                      }`}
+                    >
+                      {fansDelta}
+                    </span>
+                  )}
+                </span>
+              </div>
+            ) : (
+              <span className="truncate" style={{ color: 'var(--text-muted)' }}>
+                {refreshingStats ? '正在抓取热度与关注…' : 'TapTap 热度/关注待同步'}
+              </span>
+            )}
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              {stats && stats.history && stats.history.length >= 2 && (() => {
+                const pts = stats.history.slice(-10);
+                const vals = pts.map((pt) => pt.heat || 0);
+                const minV = Math.min(...vals);
+                const maxV = Math.max(...vals);
+                const span = Math.max(1, maxV - minV);
+                const w = 40;
+                const h = 14;
+                const poly = vals
+                  .map((v, idx) => {
+                    const x = (idx / (vals.length - 1)) * w;
+                    const y = maxV === minV ? h / 2 : h - 2 - ((v - minV) / span) * (h - 4);
+                    return `${x.toFixed(1)},${y.toFixed(1)}`;
+                  })
+                  .join(' ');
+                const rising = vals[vals.length - 1] >= vals[0];
+                return (
+                  <svg
+                    width={w}
+                    height={h}
+                    viewBox={`0 0 ${w} ${h}`}
+                    className="overflow-visible shrink-0"
+                    aria-label="近几日热度走势"
+                  >
+                    <polyline
+                      fill="none"
+                      stroke={rising ? '#EA580C' : '#94A3B8'}
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      points={poly}
+                    />
+                  </svg>
+                );
+              })()}
+              {onRefreshStats && (
+                <button
+                  onClick={onRefreshStats}
+                  disabled={refreshingStats}
+                  title="立即刷新该游戏的 TapTap 实时热度与关注"
+                  className="w-5 h-5 rounded-md flex items-center justify-center shrink-0 cursor-pointer hover:bg-blue-600 hover:text-white transition-colors disabled:opacity-60"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  <RefreshCw className={`w-3 h-3 ${refreshingStats ? 'animate-spin text-blue-600' : ''}`} />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Minimal Quiet Footer Strip (No heavy nested dark pills!) */}
         <div

@@ -53,3 +53,30 @@ export function getProjectGradient(seed: string): [string, string] {
   }
   return PALETTES[Math.abs(hash) % PALETTES.length] as [string, string];
 }
+
+export function getLocalDateKey(date: Date = new Date()): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+export function formatCompactCount(value: number | null | undefined): string {
+  const n = Number(value ?? 0);
+  if (!Number.isFinite(n) || n <= 0) return '0';
+  if (n >= 100_000_000) {
+    return `${(n / 100_000_000).toFixed(1).replace(/\.0$/, '')}亿`;
+  }
+  if (n >= 10_000) {
+    return `${(n / 10_000).toFixed(1).replace(/\.0$/, '')}万`;
+  }
+  return n.toLocaleString('zh-CN');
+}
+
+export function formatStatsDelta(current: number, prev?: number): string | null {
+  if (prev === undefined || prev === null || !Number.isFinite(prev)) return null;
+  const diff = current - prev;
+  if (diff === 0) return null;
+  const sign = diff > 0 ? '+' : '-';
+  return `${sign}${formatCompactCount(Math.abs(diff))}`;
+}

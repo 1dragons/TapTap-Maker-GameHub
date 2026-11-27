@@ -56,13 +56,13 @@ function isDirectProject(dirPath: string): boolean {
   );
 }
 
-interface DiscoveredFolder {
+export interface DiscoveredFolder {
   path: string;
   folderName: string;
   groupName?: string;
 }
 
-function discoverProjectFolders(roots: string[]): DiscoveredFolder[] {
+export function discoverProjectFolders(roots: string[]): DiscoveredFolder[] {
   const seen = new Set<string>();
   const results: DiscoveredFolder[] = [];
 
@@ -625,6 +625,7 @@ export async function scanSingleProject(
     targetDate: userMeta.targetDate,
     targetGoal: userMeta.targetGoal,
     customLinks: Array.isArray(userMeta.customLinks) ? userMeta.customLinks : [],
+    taptapStats: userMeta.taptapStats || null,
   };
 }
 
