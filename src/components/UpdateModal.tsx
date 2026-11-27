@@ -94,8 +94,8 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
   const noteLines = (info.releaseNotes || '')
     .split(/\r?\n/)
     .map((l) => l.trim())
-    .filter((l) => l && !l.startsWith('|') && !l.startsWith('> 各发行包'))
-    .slice(0, 14);
+    .filter((l) => l && !l.startsWith('|') && !l.startsWith('> 各发行包') && !l.startsWith('---'))
+    .slice(0, 32);
 
   return (
     <div
@@ -239,16 +239,26 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
                 新版本更新内容
               </div>
               <div
-                className="rounded-xl border p-3 max-h-44 overflow-y-auto space-y-1 text-[11.5px] leading-relaxed"
+                className="rounded-xl border p-3 max-h-48 overflow-y-auto space-y-1.5 text-[11.5px] leading-relaxed"
                 style={{
                   backgroundColor: 'var(--bg-surface-strong)',
                   borderColor: 'var(--border-subtle)',
                   color: 'var(--text-secondary)',
                 }}
               >
-                {noteLines.map((line, i) => (
-                  <div key={i}>{line.replace(/^#+\s*/, '').replace(/\*\*/g, '')}</div>
-                ))}
+                {noteLines.map((line, i) => {
+                  const isHeading = /^#{1,4}\s+/.test(line);
+                  const clean = line.replace(/^#+\s*/, '').replace(/\*\*/g, '');
+                  return (
+                    <div
+                      key={i}
+                      className={isHeading ? 'font-bold pt-1 first:pt-0' : ''}
+                      style={isHeading ? { color: 'var(--text-primary)' } : undefined}
+                    >
+                      {clean}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

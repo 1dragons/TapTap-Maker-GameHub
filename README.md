@@ -16,6 +16,7 @@
   <a href="#核心特性">核心特性</a> ·
   <a href="#快速开始">快速开始</a> ·
   <a href="./sop">内置 SOP</a> ·
+  <a href="./CHANGELOG.md">更新日志</a> ·
   <a href="#目录结构">目录结构</a> ·
   <a href="#隐私与安全设计">隐私与安全</a>
 </p>
